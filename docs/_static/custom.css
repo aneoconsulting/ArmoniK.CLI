@@ -1,0 +1,33 @@
+/* Change the background color of the page */
+body {
+    background-color: #f0f0f0;
+}
+
+/* Change the header background color */
+header {
+    background-color: #0078D7;  /* Change to your preferred color */
+}
+
+/* Change the text color of the main content */
+body {
+    color: #333333;  /* Dark gray text */
+}
+
+/* Customize links color */
+a {
+    color: #1a73e8;  /* Blue links */
+}
+
+a:hover {
+    color: #0c56b5;  /* Darker blue on hover */
+}
+
+/* Customize the sidebar navigation */
+.wy-nav-side {
+    background-color: #f7f7f7;  /* Light gray sidebar */
+}
+
+.wy-nav-side .current {
+    background-color: #0078D7;  /* Blue active menu item */
+    color: white;
+}

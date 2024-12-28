@@ -55,6 +55,11 @@ dev = [
     'ruff',
     'types-PyYAML',
 ]
+docs = [
+    'sphinx",
+    "sphinx-click',
+    'sphinx-rtd-theme',
+]
 
 [project.scripts]
 armonik = "armonik_cli.cli:cli"
