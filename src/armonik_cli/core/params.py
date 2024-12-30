@@ -1,9 +1,11 @@
+from collections import namedtuple
 import re
 
 import rich_click as click
 
 from datetime import timedelta
 from typing import cast, Tuple, Union
+from pathlib import Path
 
 from armonik import common
 from armonik.common import Filter
@@ -188,3 +190,68 @@ class FieldParam(click.ParamType):
             )
         cls = getattr(common, self.base_struct)
         return getattr(cls, value)
+
+
+class ResultNameDataParam(click.ParamType):
+    """Custom Click parameter type that processes and validates result data formats.
+
+    This parameter type handles three different result formats:
+    1. Single value: Converts to (value, "nodata")
+    2. Bytes data: Converts "name bytes data" to (name, "bytes", bytes_data)
+    3. File reference: Converts "name file path" to (name, "file", filepath)
+
+    Attributes:
+        name (str): Parameter type name, set to "result"
+    """
+
+    name = "result_description"
+    ParamType = namedtuple("ParamType", "name type data")
+
+    def convert(
+        self, value: str, param: Union[click.Parameter, None], ctx: Union[click.Context, None]
+    ) -> Union[ParamType, None]:
+        """
+        Parses the input value and breaks it down into a tuple after validating it.
+
+        Args:
+            value (str): The input string to convert
+            param (Union[click.Parameter, None]): Click parameter (optional)
+            ctx (Union[click.Context, None]): Click context (optional)
+
+        Returns:
+            Union[ParamType, None]: Processed result in one of three formats:
+                - (name, "nodata") for single values
+                - (name, "bytes", bytes_data) for byte data
+                - (name, "file", filepath) for file references
+                - None if input is empty
+
+        Raises:
+            click.BadParameter: If file doesn't exist or invalid type specified
+        """
+        if not value:
+            return None
+
+        parts = value.split(" ")
+
+        # Validate parts
+        if len(parts) == 1:
+            return self.ParamType(parts[0], "nodata", None)
+        elif len(parts) == 3:
+            if parts[1] == "bytes":
+                return self.ParamType(parts[0], "bytes", bytes(parts[2], encoding="utf-8"))
+            elif parts[1] == "file":
+                # check if file exists
+                if Path(parts[2]).is_file():
+                    return self.ParamType(parts[0], "file", parts[2])
+                else:
+                    self.fail(
+                        f"Couldn't find the file [{parts[2]}] for result data of [{parts[0]}]."
+                    )
+            else:
+                self.fail(
+                    f"Invalid type '{parts[1]}'. Must be 'bytes' or 'file'",
+                    param,
+                    ctx,
+                )
+        else:
+            return None
