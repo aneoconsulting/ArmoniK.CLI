@@ -30,6 +30,7 @@ dependencies = [
     "lark",
     "PyYAML",
     "rich_click",
+    "typing_extensions",
 ]
 
 [project.urls]
