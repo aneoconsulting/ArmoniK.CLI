@@ -1,0 +1,30 @@
+site_name: Armonik Admin CLI
+theme: material
+nav:
+  - Home: index.md
+  - Usage : usage.md
+  - Development: development.md
+  - Code Documentation: code_docs_gen.md
+repo_url: https://github.com/aneoconsulting/ArmoniK.Admin.CLI/
+repo_name: ArmoniK.Admin.CLI
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_symbol_type_toc: true
+            show_root_full_path: true
+            show_root_heading: true
