@@ -1,10 +1,14 @@
 import json
+import dataclasses
 
+from enum import IntEnum
 from datetime import datetime, timedelta
 from typing import Dict, List, Union, Any
 
 from armonik.common import Session, TaskOptions, Task, Partition
 from google._upb._message import ScalarMapContainer, RepeatedScalarContainer
+
+from armonik_cli.exceptions import ArmoniKCLIError
 
 
 class CLIJSONEncoder(json.JSONEncoder):
@@ -55,3 +59,55 @@ class CLIJSONEncoder(json.JSONEncoder):
             The CamelCase equivalent of the input string.
         """
         return "".join(word.capitalize() for word in value.split("_"))
+
+
+def to_pascal_case(value: str) -> str:
+    """
+    Convert snake_case strings to PascalCase.
+
+    Args:
+        value: The snake_case string to be converted.
+
+    Returns:
+        The PascalCase equivalent of the input string.
+    """
+    return "".join(word.capitalize() for word in value.split("_"))
+
+
+SerializerOutput = Union[
+    int, bool, float, str, None, Dict[str, "SerializerOutput"], List["SerializerOutput"]
+]
+
+
+def serialize(obj: object) -> SerializerOutput:
+    if type(obj) is str or type(obj) is int or type(obj) is float or type(obj) is bool:
+        return obj
+    elif type(obj) is dict:
+        if all(map(lambda key: type(key) is str, obj.keys())):
+            return {key: serialize(val) for key, val in obj.items()}
+        else:
+            raise ArmoniKCLIError(
+                "When trying to serialize object, received a dict with a non-string key."
+            )
+    elif isinstance(obj, timedelta):
+        return str(obj)
+    elif isinstance(obj, datetime):
+        return str(obj)
+    elif isinstance(obj, list):
+        return [serialize(elem) for elem in obj]
+    elif isinstance(obj, IntEnum):
+        return obj.name.capitalize()
+    elif obj is None:
+        return None
+    elif dataclasses.is_dataclass(obj):
+        return {
+            to_pascal_case(field.name): serialize(getattr(obj, field.name))
+            for field in dataclasses.fields(obj)
+        }
+    else:
+        # mypy doesn't like the fact that I'm accessing __init__ ... well too bad
+        attributes = list(obj.__init__.__annotations__.keys())  # type: ignore
+        serialized_object = {
+            to_pascal_case(att): serialize(getattr(obj, att)) for att in attributes
+        }
+        return serialized_object
