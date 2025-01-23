@@ -87,7 +87,7 @@ def test_session_list(mocker, cmd):
 def test_session_get(mocker, cmd):
     mocker.patch.object(ArmoniKSessions, "get_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd)
-    assert reformat_cmd_output(result.output, deserialize=True) == serialized_session
+    assert reformat_cmd_output(result.output, deserialize=True) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -116,12 +116,9 @@ def test_session_create(mocker, cmd):
 def test_session_cancel(mocker, cmd, prompt):
     mocker.patch.object(ArmoniKSessions, "cancel_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd, input=prompt)
-    assert (
-        reformat_cmd_output(
-            result.output, deserialize=True, first_line_out=True if prompt else False
-        )
-        == serialized_session
-    )
+    assert reformat_cmd_output(
+        result.output, deserialize=True, first_line_out=True if prompt else False
+    ) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -133,7 +130,7 @@ def test_session_cancel(mocker, cmd, prompt):
 def test_session_pause(mocker, cmd):
     mocker.patch.object(ArmoniKSessions, "pause_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd)
-    assert reformat_cmd_output(result.output, deserialize=True) == serialized_session
+    assert reformat_cmd_output(result.output, deserialize=True) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -145,7 +142,7 @@ def test_session_pause(mocker, cmd):
 def test_session_resume(mocker, cmd):
     mocker.patch.object(ArmoniKSessions, "resume_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd)
-    assert reformat_cmd_output(result.output, deserialize=True) == serialized_session
+    assert reformat_cmd_output(result.output, deserialize=True) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -158,12 +155,9 @@ def test_session_resume(mocker, cmd):
 def test_session_close(mocker, cmd, prompt):
     mocker.patch.object(ArmoniKSessions, "close_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd, input=prompt)
-    assert (
-        reformat_cmd_output(
-            result.output, deserialize=True, first_line_out=True if prompt else False
-        )
-        == serialized_session
-    )
+    assert reformat_cmd_output(
+        result.output, deserialize=True, first_line_out=True if prompt else False
+    ) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -176,12 +170,9 @@ def test_session_close(mocker, cmd, prompt):
 def test_session_purge(mocker, cmd, prompt):
     mocker.patch.object(ArmoniKSessions, "purge_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd, input=prompt)
-    assert (
-        reformat_cmd_output(
-            result.output, deserialize=True, first_line_out=True if prompt else False
-        )
-        == serialized_session
-    )
+    assert reformat_cmd_output(
+        result.output, deserialize=True, first_line_out=True if prompt else False
+    ) == [serialized_session]
 
 
 @pytest.mark.parametrize(
@@ -194,20 +185,17 @@ def test_session_purge(mocker, cmd, prompt):
 def test_session_delete(mocker, cmd, prompt):
     mocker.patch.object(ArmoniKSessions, "delete_session", return_value=deepcopy(raw_session))
     result = run_cmd_and_assert_exit_code(cmd, input=prompt)
-    assert (
-        reformat_cmd_output(
-            result.output, deserialize=True, first_line_out=True if prompt else False
-        )
-        == serialized_session
-    )
+    assert reformat_cmd_output(
+        result.output, deserialize=True, first_line_out=True if prompt else False
+    ) == [serialized_session]
 
 
 @pytest.mark.parametrize(
     "cmd",
     [
-        f"session stop-submission --endpoint {ENDPOINT} id",
-        f"session stop-submission --clients-only --endpoint {ENDPOINT} id",
-        f"session stop-submission --workers-only --endpoint {ENDPOINT} id",
+        f"session stop-submission --endpoint {ENDPOINT} id --confirm",
+        f"session stop-submission --clients --endpoint {ENDPOINT} id --confirm",
+        f"session stop-submission --workers --endpoint {ENDPOINT} id --confirm",
     ],
 )
 def test_session_stop_submission(mocker, cmd):
@@ -215,4 +203,4 @@ def test_session_stop_submission(mocker, cmd):
         ArmoniKSessions, "stop_submission_session", return_value=deepcopy(raw_session)
     )
     result = run_cmd_and_assert_exit_code(cmd)
-    assert reformat_cmd_output(result.output, deserialize=True) == serialized_session
+    assert reformat_cmd_output(result.output, deserialize=True) == [serialized_session]
