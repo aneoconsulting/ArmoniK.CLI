@@ -8,7 +8,7 @@ from armonik.client.tasks import ArmoniKTasks
 from armonik.common import Task, TaskStatus, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
-from armonik_cli.core import console, base_command
+from armonik_cli.core import console, base_command, base_group
 from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
 from armonik_cli.exceptions import InternalError
 
@@ -16,6 +16,7 @@ TASKS_TABLE_COLS = [("ID", "Id"), ("Status", "Status"), ("CreatedAt", "CreatedAt
 
 
 @click.group(name="task")
+@base_group
 def tasks() -> None:
     """Manage cluster's tasks."""
     pass

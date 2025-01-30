@@ -7,13 +7,14 @@ from armonik.client.partitions import ArmoniKPartitions
 from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
-from armonik_cli.core import console, base_command
+from armonik_cli.core import console, base_command, base_group
 from armonik_cli.core.params import FilterParam, FieldParam
 
 PARTITIONS_TABLE_COLS = [("ID", "Id"), ("PodReserved", "PodReserved"), ("PodMax", "PodMax")]
 
 
 @click.group(name="partition")
+@base_group
 def partitions() -> None:
     """Manage cluster partitions."""
     pass

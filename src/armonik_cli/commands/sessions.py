@@ -8,7 +8,14 @@ from armonik.client.sessions import ArmoniKSessions
 from armonik.common import SessionStatus, Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
-from armonik_cli.core import console, base_command, KeyValuePairParam, TimeDeltaParam, FilterParam
+from armonik_cli.core import (
+    console,
+    base_command,
+    KeyValuePairParam,
+    TimeDeltaParam,
+    FilterParam,
+    base_group,
+)
 from armonik_cli.core.params import FieldParam
 
 
@@ -17,6 +24,7 @@ session_argument = click.argument("session-id", required=True, type=str, metavar
 
 
 @click.group(name="session")
+@base_group
 def sessions() -> None:
     """Manage cluster sessions."""
     pass

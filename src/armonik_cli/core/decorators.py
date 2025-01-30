@@ -1,28 +1,30 @@
-from functools import wraps, partial
-
 import grpc
 import rich_click as click
 
+from functools import wraps, partial
+from typing import Callable, Optional, Any
+
 from armonik_cli.core.console import console
+from armonik_cli.core.common import global_cluster_config_options, global_common_options
 from armonik_cli.exceptions import NotFoundError, InternalError, InternalArmoniKError
 
 
-def error_handler(func=None):
-    """Decorator to ensure correct display of errors.
+def error_handler(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    Decorator to handle errors for Click commands and ensure proper error display.
 
     Args:
         func: The command function to be decorated. If None, a partial function is returned,
             allowing the decorator to be used with parentheses.
 
     Returns:
-        The wrapped function with added CLI options.
+        The wrapped function with error handling.
     """
-    # Allow to call the decorator with parenthesis.
-    if not func:
+    if func is None:
         return partial(error_handler)
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except click.ClickException:
@@ -34,73 +36,63 @@ def error_handler(func=None):
             if status_code == grpc.StatusCode.NOT_FOUND:
                 raise NotFoundError(error_details)
             elif status_code == grpc.StatusCode.INTERNAL:
-                raise InternalArmoniKError(f"An internal exception has occured:\n{error_details}")
+                raise InternalArmoniKError(f"An internal exception has occurred:\n{error_details}")
             elif status_code == grpc.StatusCode.UNKNOWN:
-                raise InternalArmoniKError(f"An unknown exception has occured:\n{error_details}")
+                raise InternalArmoniKError(f"An unknown exception has occurred:\n{error_details}")
             else:
-                raise InternalError("An internal fatal error occured.")
+                raise InternalError("An internal fatal error occurred.")
         except Exception:
-            if "debug" in kwargs and kwargs["debug"]:
+            if kwargs.get("debug", False):
                 console.print_exception()
             else:
-                raise InternalError("An internal fatal error occured.")
+                raise InternalError("An internal fatal error occurred.")
 
     return wrapper
 
 
-def base_command(func=None):
-    """Decorator to add common CLI options to a Click command function, including
-    'endpoint', 'output', and 'debug'. These options are automatically passed
-    as arguments to the decorated function.
+def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    Decorator to add global cluster configuration and common options to a Click group.
 
-    The following options are added to the command:
-    - `--endpoint` (required): Specifies the cluster endpoint.
-    - `--output`: Sets the output format, with options 'yaml', 'json', or 'table' (default is 'json').
-    - `--debug`: Enables debug mode, printing additional logs if set.
+    Args:
+        func: The Click group function to decorate. If None, a partial function is returned,
+            allowing the decorator to be used with parentheses.
 
-    Warning:
-        If the decorated function has parameters with the same names as the options added by
-        this decorator, this can lead to conflicts and unpredictable behavior.
+    Returns:
+        The decorated Click group function.
+    """
+    if func is None:
+        return partial(base_group)
+
+    @global_cluster_config_options
+    @global_common_options
+    @wraps(func)
+    def wrapper(endpoint: str, output: str, debug: bool, *args: Any, **kwargs: Any) -> Any:
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def base_command(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    Decorator to add global cluster configuration and common options and error handling to a
+    Click command function.
 
     Args:
         func: The command function to be decorated. If None, a partial function is returned,
             allowing the decorator to be used with parentheses.
 
     Returns:
-        The wrapped function with added CLI options.
+        The wrapped function with added CLI options and error handling.
     """
-
-    # Allow to call the decorator with parenthesis.
-    if not func:
+    if func is None:
         return partial(base_command)
 
-    # Define the wrapper function with added Click options
-    @click.option(
-        "-e",
-        "--endpoint",
-        type=str,
-        required=True,
-        help="Endpoint of the cluster to connect to.",
-        metavar="ENDPOINT",
-    )
-    @click.option(
-        "-o",
-        "--output",
-        type=click.Choice(["yaml", "json", "table"], case_sensitive=False),
-        default="json",
-        show_default=True,
-        help="Commands output format.",
-        metavar="FORMAT",
-    )
-    @click.option(
-        "--debug", is_flag=True, default=False, help="Print debug logs and internal errors."
-    )
+    @global_cluster_config_options
+    @global_common_options
     @error_handler
     @wraps(func)
-    def wrapper(endpoint: str, output: str, debug: bool, *args, **kwargs):
-        kwargs["endpoint"] = endpoint
-        kwargs["output"] = output
-        kwargs["debug"] = debug
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
