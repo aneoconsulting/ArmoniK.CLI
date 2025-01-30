@@ -10,7 +10,6 @@ from armonik.common.filter import TaskFilter, Filter
 
 from armonik_cli.core import console, base_command, base_group
 from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
-from armonik_cli.exceptions import InternalError
 
 TASKS_TABLE_COLS = [("ID", "Id"), ("Status", "Status"), ("CreatedAt", "CreatedAt")]
 
@@ -238,7 +237,7 @@ def tasks_create(
                     "red",
                 )
             )
-            raise InternalError(
+            raise click.MissingParameter(
                 "If you want to pass in additional task options please provide all three (max duration, priority, max retries)"
             )
         task_definition = TaskDefinition(

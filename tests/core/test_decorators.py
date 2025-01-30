@@ -3,7 +3,7 @@ import pytest
 from grpc import RpcError, StatusCode
 
 from armonik_cli.core.decorators import error_handler, base_command, base_group
-from armonik_cli.exceptions import NotFoundError, InternalError
+from armonik_cli.exceptions import InternalArmoniKError, InternalCliError
 
 
 class DummyRpcError(RpcError):
@@ -20,7 +20,7 @@ class DummyRpcError(RpcError):
 
 @pytest.mark.parametrize(
     ("exception", "code"),
-    [(NotFoundError, StatusCode.NOT_FOUND), (InternalError, StatusCode.UNAVAILABLE)],
+    [(InternalArmoniKError, StatusCode.UNAVAILABLE)],
 )
 def test_error_handler_rpc_error(exception, code):
     @error_handler
@@ -37,7 +37,7 @@ def test_error_handler_other_no_debug(decorator):
     def raise_error():
         raise ValueError()
 
-    with pytest.raises(InternalError):
+    with pytest.raises(InternalCliError):
         raise_error()
 
 
@@ -47,7 +47,8 @@ def test_error_handler_other_debug(decorator):
     def raise_error(debug=None):
         raise ValueError()
 
-    raise_error(debug=True)
+    with pytest.raises(InternalCliError):
+        raise_error(debug=True)
 
 
 @pytest.mark.parametrize("decorator", [base_group, base_group()])

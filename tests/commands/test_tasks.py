@@ -273,7 +273,7 @@ def test_task_cancel(mocker, cmd):
         ),
         (
             f"task create --endpoint {ENDPOINT} --session-id sessionid --payload-id payloadid --expected-outputs 1 --expected-outputs 2 --data-dependencies 3 --max-duration 00:00:15.00 --priority 0",
-            1,
+            3,
         ),
     ],
 )
