@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Union, Any
 
-from armonik.common import Session, TaskOptions, Task, Partition
+from armonik.common import Session, Task, TaskOptions, Partition, Result
 from google._upb._message import ScalarMapContainer, RepeatedScalarContainer
 
 
@@ -16,7 +16,7 @@ class CLIJSONEncoder(json.JSONEncoder):
         __api_types: The list of ArmoniK API Python objects managed by this encoder.
     """
 
-    __api_types = [Session, TaskOptions, Task, Partition]
+    __api_types = [Session, Task, TaskOptions, Partition, Result]
 
     def default(self, obj: object) -> Union[str, Dict[str, Any], List[Any]]:
         """

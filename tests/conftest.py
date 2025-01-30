@@ -8,9 +8,14 @@ from armonik_cli.cli import cli
 
 
 def run_cmd_and_assert_exit_code(
-    cmd: str, exit_code: int = 0, input: Optional[str] = None, env: Optional[Dict[str, str]] = None
+    cmd: str,
+    exit_code: int = 0,
+    input: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None,
+    split: bool = True,
 ) -> Result:
-    cmd = cmd.split()
+    if split:
+        cmd = cmd.split()
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(cli, cmd, input=input, env=env)
