@@ -1,3 +1,5 @@
+from datetime import datetime
+import time
 import rich_click as click
 
 from typing import Callable, Any
@@ -83,3 +85,32 @@ def global_common_options(command: Callable[..., Any]) -> Callable[..., Any]:
         The decorated command function.
     """
     return apply_click_params(command, output_option, debug_option)
+
+
+def format_timestamp(timestamp):
+    """Format a timestamp as a human-readable string.
+
+    Args:
+        timestamp (Optional[float]): Unix timestamp to format. If None, returns "ongoing".
+
+    Returns:
+        str: Formatted time string in HH:MM:SS format, or "ongoing" if timestamp is None.
+    """
+    if timestamp is None:
+        return "ongoing"
+    return datetime.fromtimestamp(timestamp).strftime("%H:%M:%S")
+
+
+def calculate_duration(start, end):
+    """Calculate the duration between two timestamps.
+
+    Args:
+        start (float): The start time in seconds.
+        end (Optional[float]): The end time in seconds. If None, the current time is used.
+
+    Returns:
+        float: Duration rounded to 2 decimal places.
+    """
+    if end is None:
+        end = time.time()
+    return round(end - start, 2)

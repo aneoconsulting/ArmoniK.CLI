@@ -36,7 +36,7 @@ For instance, say we want to get all of the tasks associated with a specific ses
 
 .. code-block:: console 
 
-    $ armonik task list -e 170.10.10.122:5001 --filter "session_id="1085c427-89da-4104-aa32-bc6d3d84d2b2'" --output table   
+    $ armonik task list -e 170.10.10.122:5001 --filter "session_id='1085c427-89da-4104-aa32-bc6d3d84d2b2'" --output table   
 
 or if we want to list all of the tasks within a specific session that have error'd out we can do 
 
