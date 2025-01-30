@@ -1,6 +1,6 @@
 import json
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from click.testing import CliRunner, Result
 
@@ -26,7 +26,7 @@ def run_cmd_and_assert_exit_code(
 
 def reformat_cmd_output(
     output: str, deserialize: bool = False, first_line_out: bool = False
-) -> str:
+) -> Union[str, Dict[str, Any]]:
     if first_line_out:
         output = "\n".join(output.split("\n")[1:])
     output = output.replace("\n", "")

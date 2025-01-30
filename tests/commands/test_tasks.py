@@ -278,5 +278,5 @@ def test_task_cancel(mocker, cmd):
     ],
 )
 def test_task_create(mocker, cmd, exit_code):
-    mocker.patch.object(ArmoniKTasks, "submit_tasks", return_value=[])
+    mocker.patch.object(ArmoniKTasks, "submit_tasks", return_value=[deepcopy(raw_tasks[0])])
     run_cmd_and_assert_exit_code(cmd, exit_code=exit_code)

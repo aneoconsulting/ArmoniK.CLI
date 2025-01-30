@@ -246,7 +246,7 @@ def tasks_create(
         submitted_tasks = tasks_client.submit_tasks(session_id, [task_definition])
 
         console.formatted_print(
-            [_clean_up_status(t) for t in submitted_tasks],
+            _clean_up_status(submitted_tasks[0]),
             format=output,
             table_cols=TASKS_TABLE_COLS,
         )
