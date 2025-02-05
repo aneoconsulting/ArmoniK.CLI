@@ -80,7 +80,7 @@ def partition_list(
 
         if total > 0:
             console.formatted_print(
-                partitions_list, format=output, table_cols=PARTITIONS_TABLE_COLS
+                partitions_list, print_format=output, table_cols=PARTITIONS_TABLE_COLS
             )
 
 
@@ -95,4 +95,4 @@ def partition_get(endpoint: str, output: str, partition_ids: List[str], debug: b
         for partition_id in partition_ids:
             partition = partitions_client.get_partition(partition_id)
             partitions.append(partition)
-        console.formatted_print(partitions, format=output, table_cols=PARTITIONS_TABLE_COLS)
+        console.formatted_print(partitions, print_format=output, table_cols=PARTITIONS_TABLE_COLS)

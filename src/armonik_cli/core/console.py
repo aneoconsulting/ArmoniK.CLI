@@ -1,12 +1,12 @@
 import json
 import yaml
 
-from typing import List, Dict, Tuple, Any, Union, cast
+from typing import List, Dict, Tuple, Any, Union
 
 from rich.console import Console
 from rich.table import Table
 
-from armonik_cli.core.serialize import CLIJSONEncoder
+from armonik_cli.core.serialize import serialize
 
 
 class ArmoniKCLIConsole(Console):
@@ -16,30 +16,30 @@ class ArmoniKCLIConsole(Console):
     """
 
     def formatted_print(
-        self, obj: object, format: str, table_cols: Union[List[Tuple[str, str]], None] = None
+        self, obj: object, print_format: str, table_cols: Union[List[Tuple[str, str]], None] = None
     ) -> None:
         """
         Print an object in a specified format: JSON, YAML, or a table.
 
         Args:
             obj: The object to format and print.
-            format: The format in which to print the object. Supported values are 'yaml', 'json', and 'table'.
+            print_format: The format in which to print the object. Supported values are 'yaml', 'json', and 'table'.
             table_cols: Columns for the table format as a list of tuples containing the column name and
                 corresponding key in the object. Required if format is 'table'.
 
         Raises:
-            ValueError: If `format` is 'table' and `table_cols` is not provided.
+            ValueError: If `print_format` is 'table' and `table_cols` is not provided.
         """
-        obj = cast(Dict[str, Any], json.loads(json.dumps(obj, cls=CLIJSONEncoder)))
+        obj = serialize(obj)
 
-        if format == "yaml":
+        if print_format == "yaml":
             obj = yaml.dump(obj, sort_keys=False, indent=2)
-        elif format == "table":
+        elif print_format == "table":
             if not table_cols:
                 raise ValueError(
                     "Missing 'table_cols' when calling 'formatted_print' with format table."
                 )
-            obj = self._build_table(obj, table_cols)
+            obj = self._build_table(obj, table_cols)  # type: ignore
         else:
             obj = json.dumps(obj, sort_keys=False, indent=2)
 

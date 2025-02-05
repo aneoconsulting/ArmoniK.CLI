@@ -5,7 +5,7 @@ import rich_click as click
 from typing import IO, List, Union
 
 from armonik.client.results import ArmoniKResults
-from armonik.common import Result, ResultStatus, Direction
+from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
 from armonik_cli.core import console, base_command, base_group
@@ -88,8 +88,7 @@ def result_list(
             curr_page += 1
 
     if total > 0:
-        results = [_clean_up_status(r) for r in results]
-        console.formatted_print(results, format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(results, print_format=output, table_cols=RESULT_TABLE_COLS)
 
 
 @results.command(name="get")
@@ -102,9 +101,8 @@ def result_get(endpoint: str, output: str, result_ids: List[str], debug: bool) -
         results = []
         for result_id in result_ids:
             result = results_client.get_result(result_id)
-            result = _clean_up_status(result)
             results.append(result)
-        console.formatted_print(results, format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(results, print_format=output, table_cols=RESULT_TABLE_COLS)
 
 
 @results.command(name="create")
@@ -158,8 +156,7 @@ def result_create(
                 results_data=results_with_data, session_id=session_id
             )
             created_results += created_results_data.values()
-        created_results = [_clean_up_status(r) for r in created_results]
-        console.formatted_print(created_results, format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(created_results, print_format=output, table_cols=RESULT_TABLE_COLS)
 
 
 @results.command(name="upload-data")
@@ -237,8 +234,3 @@ def result_delete_data(
                 session_result_mapping[result.session_id].append(result_id)
         for session_id, result_ids_for_session in session_result_mapping.items():
             results_client.delete_result_data(result_ids_for_session, session_id)
-
-
-def _clean_up_status(result: Result) -> Result:
-    result.status = ResultStatus.name_from_value(result.status).split("_")[-1].capitalize()
-    return result

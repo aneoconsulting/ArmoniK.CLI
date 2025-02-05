@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import List, Tuple, Union
 
 from armonik.client.tasks import ArmoniKTasks
-from armonik.common import Task, TaskStatus, TaskDefinition, TaskOptions, Direction
+from armonik.common import Task, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
 from armonik_cli.core import console, base_command, base_group
@@ -78,8 +78,7 @@ def tasks_list(
             curr_page += 1
 
     if total > 0:
-        tasks_list = [_clean_up_status(task) for task in tasks_list]
-        console.formatted_print(tasks_list, format=output, table_cols=TASKS_TABLE_COLS)
+        console.formatted_print(tasks_list, print_format=output, table_cols=TASKS_TABLE_COLS)
 
 
 @tasks.command(name="get")
@@ -92,9 +91,8 @@ def tasks_get(endpoint: str, output: str, task_ids: List[str], debug: bool):
         tasks = []
         for task_id in task_ids:
             task = tasks_client.get_task(task_id)
-            task = _clean_up_status(task)
             tasks.append(task)
-        console.formatted_print(tasks, format=output, table_cols=TASKS_TABLE_COLS)
+        console.formatted_print(tasks, print_format=output, table_cols=TASKS_TABLE_COLS)
 
 
 @tasks.command(name="cancel")
@@ -246,13 +244,7 @@ def tasks_create(
         submitted_tasks = tasks_client.submit_tasks(session_id, [task_definition])
 
         console.formatted_print(
-            _clean_up_status(submitted_tasks[0]),
-            format=output,
+            submitted_tasks[0],
+            print_format=output,
             table_cols=TASKS_TABLE_COLS,
         )
-
-
-def _clean_up_status(task: Task) -> Task:
-    task.status = TaskStatus(task.status).name.split("_")[-1].capitalize()
-    task.output = task.output.error if task.output else None
-    return task
