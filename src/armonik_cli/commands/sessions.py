@@ -20,7 +20,6 @@ from armonik_cli.core.params import FieldParam
 
 
 SESSION_TABLE_COLS = [("ID", "SessionId"), ("Status", "Status"), ("CreatedAt", "CreatedAt")]
-session_argument = click.argument("session-id", required=True, type=str, metavar="SESSION_ID")
 
 
 @click.group(name="session")
@@ -58,7 +57,7 @@ def sessions() -> None:
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
 @base_command
-def list(
+def session_list(
     endpoint: str,
     output: str,
     filter_with: Union[SessionFilter, None],
@@ -97,15 +96,18 @@ def list(
 
 
 @sessions.command(name="get")
-@session_argument
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_get(endpoint: str, output: str, session_id: str, debug: bool) -> None:
+def session_get(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
     """Get details of a given session."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.get_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        sessions = []
+        for session_id in session_ids:
+            session = sessions_client.get_session(session_id=session_id)
+            session = _clean_up_status(session)
+            sessions.append(session)
+        console.formatted_print(sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="create")
@@ -207,7 +209,7 @@ def session_create(
                 application_namespace=application_namespace,
                 application_service=application_service,
                 engine_type=engine_type,
-                options={k: v for k, v in option} if option else None,
+                options=dict(option) if option else None,
             ),
             partition_ids=partition if partition else [default_partition],
         )
@@ -217,107 +219,273 @@ def session_create(
 
 
 @sessions.command(name="cancel")
-@click.confirmation_option("--confirm", prompt="Are you sure you want to cancel this session?")
-@session_argument
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the cancel operation on all supplied sessions all at once in advance.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips sessions that haven't been found when trying to cancel them.",
+)
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_cancel(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Cancel a session."""
+def session_cancel(
+    endpoint: str,
+    output: str,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    debug: bool,
+) -> None:
+    """Cancel sessions."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.cancel_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        cancelled_sessions = []
+        for session_id in session_ids:
+            if confirm or click.confirm(
+                f"Are you sure you want to cancel the session with id [{session_id}]",
+                abort=False,
+            ):
+                try:
+                    session = sessions_client.cancel_session(session_id=session_id)
+                    cancelled_sessions.append(session)
+                except grpc.RpcError as e:
+                    if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        continue
+                    else:
+                        raise e
+        cancelled_sessions = [_clean_up_status(session) for session in cancelled_sessions]
+        console.formatted_print(cancelled_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="pause")
-@session_argument
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_pause(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Pause a session."""
+def session_pause(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
+    """Pause sessions."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.pause_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        paused_sessions = []
+        for session_id in session_ids:
+            session = sessions_client.pause_session(session_id=session_id)
+            paused_sessions.append(session)
+        paused_sessions = [_clean_up_status(session) for session in paused_sessions]
+        console.formatted_print(paused_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="resume")
-@session_argument
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_resume(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Resume a session."""
+def session_resume(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
+    """Resume sessions."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.resume_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        resumed_sessions = []
+        for session_id in session_ids:
+            session = sessions_client.resume_session(session_id=session_id)
+            resumed_sessions.append(session)
+        resumed_sessions = [_clean_up_status(session) for session in resumed_sessions]
+        console.formatted_print(resumed_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="close")
-@click.confirmation_option("--confirm", prompt="Are you sure you want to close this session?")
-@session_argument
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the close operation on all supplied sessions all at once in advance.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips sessions that haven't been found when trying to close them.",
+)
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_close(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Close a session."""
+def session_close(
+    endpoint: str,
+    output: str,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    debug: bool,
+) -> None:
+    """Close sessions."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.close_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        closed_sessions = []
+        for session_id in session_ids:
+            if confirm or click.confirm(
+                f"Are you sure you want to close the session with id [{session_id}]",
+                abort=False,
+            ):
+                try:
+                    session = sessions_client.close_session(session_id=session_id)
+                    closed_sessions.append(session)
+                except grpc.RpcError as e:
+                    if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        continue
+                    else:
+                        raise e
+        closed_sessions = [_clean_up_status(session) for session in closed_sessions]
+        console.formatted_print(closed_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="purge")
-@click.confirmation_option("--confirm", prompt="Are you sure you want to purge this session?")
-@session_argument
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the purge operation on all supplied sessions all at once in advance.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips sessions that haven't been found when trying to purge them.",
+)
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_purge(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Purge a session."""
+def session_purge(
+    endpoint: str,
+    output: str,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    debug: bool,
+) -> None:
+    """Purge sessions."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.purge_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        purged_sessions = []
+        for session_id in session_ids:
+            if confirm or click.confirm(
+                f"Are you sure you want to purge the session with id [{session_id}]",
+                abort=False,
+            ):
+                try:
+                    session = sessions_client.purge_session(session_id=session_id)
+                    purged_sessions.append(session)
+                except grpc.RpcError as e:
+                    if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        continue
+                    else:
+                        raise e
+
+        purged_sessions = [_clean_up_status(session) for session in purged_sessions]
+        console.formatted_print(purged_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="delete")
-@click.confirmation_option("--confirm", prompt="Are you sure you want to delete this session?")
-@session_argument
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the delete operation on all supplied sessions all at once in advance.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips sessions that haven't been found when trying to delete them.",
+)
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
-def session_delete(endpoint: str, output: str, session_id: str, debug: bool) -> None:
-    """Delete a session and associated data from the cluster."""
+def session_delete(
+    endpoint: str,
+    output: str,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    debug: bool,
+) -> None:
+    """Delete sessions and their associated tasks from the cluster."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.delete_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        deleted_sessions = []
+        for session_id in session_ids:
+            if confirm or click.confirm(
+                f"Are you sure you want to delete the session with id [{session_id}]",
+                abort=False,
+            ):
+                try:
+                    session = sessions_client.delete_session(session_id=session_id)
+                    deleted_sessions.append(session)
+                except grpc.RpcError as e:
+                    if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        continue
+                    else:
+                        raise e
+        deleted_sessions = [_clean_up_status(session) for session in deleted_sessions]
+        console.formatted_print(deleted_sessions, format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="stop-submission")
 @click.option(
-    "--clients-only",
+    "--clients",
     is_flag=True,
     default=False,
-    help="Prevent only clients from submitting new tasks in the session.",
+    help="Prevent clients from submitting new tasks in the session.",
 )
 @click.option(
-    "--workers-only",
+    "--workers",
     is_flag=True,
     default=False,
-    help="Prevent only workers from submitting new tasks in the session.",
+    help="Prevent workers from submitting new tasks in the session.",
 )
-@session_argument
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the block submission operation on all supplied sessions all at once in advance.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips sessions that haven't been found when trying to block submission to them.",
+)
+@click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command
 def session_stop_submission(
-    endpoint: str, session_id: str, clients_only: bool, workers_only: bool, output: str, debug: bool
+    endpoint: str,
+    session_ids: str,
+    confirm: bool,
+    clients: bool,
+    workers: bool,
+    skip_not_found: bool,
+    output: str,
+    debug: bool,
 ) -> None:
     """Stop clients and/or workers from submitting new tasks in a session."""
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
-        session = sessions_client.stop_submission_session(
-            session_id=session_id, client=clients_only, worker=workers_only
-        )
+        submission_blocked_sessions = []
+        for session_id in session_ids:
+            blocked_submitters = (
+                ("clients" if clients else "")
+                + (" and " if clients and workers else "")
+                + ("workers" if workers else "")
+            )
+            if confirm or click.confirm(
+                f"Are you sure you want to stop {blocked_submitters} from submitting tasks to the session with id [{session_id}]",
+                abort=False,
+            ):
+                try:
+                    session = sessions_client.stop_submission_session(
+                        session_id=session_id, client=clients, worker=workers
+                    )
+                    submission_blocked_sessions.append(session)
+                except grpc.RpcError as e:
+                    if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        continue
+                    else:
+                        raise e
+
         console.formatted_print(
-            _clean_up_status(session), format=output, table_cols=SESSION_TABLE_COLS
+            [_clean_up_status(session) for session in submission_blocked_sessions],
+            format=output,
+            table_cols=SESSION_TABLE_COLS,
         )
 
 
