@@ -42,7 +42,7 @@ def cluster_info(endpoint: str, output: str, debug: bool) -> None:
                 "Endpoint": endpoint,
                 "Versions": {"Core": version_info["core"], "API": version_info["api"]},
             }
-            console.formatted_print(cluster_info, format=output)
+            console.formatted_print(cluster_info, print_format=output)
 
 
 @cluster.command(name="health")
@@ -71,4 +71,4 @@ def cluster_health(endpoint: str, output: str, debug: bool) -> None:
             panel = Panel(grid, title="Health Status", border_style="blue")
             print(panel)
         else:
-            console.formatted_print(health_status, format=output)
+            console.formatted_print(health_status, print_format=output)

@@ -7,10 +7,6 @@ from armonik.common import Task, TaskOptions, TaskStatus
 
 from conftest import run_cmd_and_assert_exit_code, reformat_cmd_output
 
-# import debugpy
-
-# debugpy.listen(("localhost", 5679))
-# debugpy.wait_for_client()
 
 ENDPOINT = "172.17.119.85:5001"
 
@@ -120,13 +116,9 @@ serialized_tasks = [
             "a9ae4a53-44f1-40a9-b91e-2ccd9f148f50",
             "9f8a5c21-b606-43c1-8fed-f588a22a97ed",
         ],
-        "CountParentTaskIds": 2,
         "DataDependencies": [],
-        "CountDataDependencies": 0,
         "ExpectedOutputIds": ["6205a751-36a0-481a-aaab-d1d052721935"],
-        "CountExpectedOutputIds": 1,
         "RetryOfIds": [],
-        "CountRetryOfIds": 0,
         "Status": "Completed",
         "StatusMessage": None,
         "Options": {
@@ -173,13 +165,9 @@ serialized_tasks = [
             "a9ae4a53-44f1-40a9-b91e-2ccd9f148f50",
             "9f8a5c21-b606-43c1-8fed-f588a22a97ed",
         ],
-        "CountParentTaskIds": 2,
         "DataDependencies": [],
-        "CountDataDependencies": 0,
         "ExpectedOutputIds": ["25f69d02-20f1-49db-b6b9-c82cce4e35ac"],
-        "CountExpectedOutputIds": 1,
         "RetryOfIds": [],
-        "CountRetryOfIds": 0,
         "Status": "Completed",
         "StatusMessage": None,
         "Options": {

@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import List, Tuple, Union
 
 from armonik.client.sessions import ArmoniKSessions
-from armonik.common import SessionStatus, Session, TaskOptions, Direction
+from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
 from armonik_cli.core import (
@@ -88,8 +88,7 @@ def session_list(
             curr_page += 1
 
     if total > 0:
-        session_list = [_clean_up_status(s) for s in session_list]
-        console.formatted_print(session_list, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(session_list, print_format=output, table_cols=SESSION_TABLE_COLS)
 
     # TODO: Use logger to display this information
     # console.print(f"\n{total} sessions found.")
@@ -105,9 +104,8 @@ def session_get(endpoint: str, output: str, session_ids: List[str], debug: bool)
         sessions = []
         for session_id in session_ids:
             session = sessions_client.get_session(session_id=session_id)
-            session = _clean_up_status(session)
             sessions.append(session)
-        console.formatted_print(sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="create")
@@ -214,8 +212,7 @@ def session_create(
             partition_ids=partition if partition else [default_partition],
         )
         session = sessions_client.get_session(session_id=session_id)
-        session = _clean_up_status(session)
-        console.formatted_print(session, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(session, print_format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="cancel")
@@ -257,8 +254,9 @@ def session_cancel(
                         continue
                     else:
                         raise e
-        cancelled_sessions = [_clean_up_status(session) for session in cancelled_sessions]
-        console.formatted_print(cancelled_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            cancelled_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="pause")
@@ -272,8 +270,7 @@ def session_pause(endpoint: str, output: str, session_ids: List[str], debug: boo
         for session_id in session_ids:
             session = sessions_client.pause_session(session_id=session_id)
             paused_sessions.append(session)
-        paused_sessions = [_clean_up_status(session) for session in paused_sessions]
-        console.formatted_print(paused_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(paused_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="resume")
@@ -287,8 +284,9 @@ def session_resume(endpoint: str, output: str, session_ids: List[str], debug: bo
         for session_id in session_ids:
             session = sessions_client.resume_session(session_id=session_id)
             resumed_sessions.append(session)
-        resumed_sessions = [_clean_up_status(session) for session in resumed_sessions]
-        console.formatted_print(resumed_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            resumed_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="close")
@@ -330,8 +328,7 @@ def session_close(
                         continue
                     else:
                         raise e
-        closed_sessions = [_clean_up_status(session) for session in closed_sessions]
-        console.formatted_print(closed_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(closed_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="purge")
@@ -374,8 +371,7 @@ def session_purge(
                     else:
                         raise e
 
-        purged_sessions = [_clean_up_status(session) for session in purged_sessions]
-        console.formatted_print(purged_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(purged_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="delete")
@@ -417,8 +413,9 @@ def session_delete(
                         continue
                     else:
                         raise e
-        deleted_sessions = [_clean_up_status(session) for session in deleted_sessions]
-        console.formatted_print(deleted_sessions, format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            deleted_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="stop-submission")
@@ -481,14 +478,8 @@ def session_stop_submission(
                         continue
                     else:
                         raise e
-
         console.formatted_print(
-            [_clean_up_status(session) for session in submission_blocked_sessions],
-            format=output,
+            submission_blocked_sessions,
+            print_format=output,
             table_cols=SESSION_TABLE_COLS,
         )
-
-
-def _clean_up_status(session: Session) -> Session:
-    session.status = SessionStatus.name_from_value(session.status).split("_")[-1].capitalize()
-    return session
