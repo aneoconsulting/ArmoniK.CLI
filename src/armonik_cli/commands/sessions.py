@@ -549,9 +549,16 @@ STATUS_COLORS = {
     TaskStatus.UNSPECIFIED: "bright_black",
 }
 
-def create_session_watch_display(session_info, status_count: Dict[TaskStatus, int]):
-    """Create a more visually appealing layout for session monitoring."""
 
+FLASH_STYLE = "strike "  # “flash” color/style
+
+def create_session_watch_display(
+    session_info, 
+    status_count: Dict[TaskStatus, int],
+    last_change_time: Dict[TaskStatus, float],
+    flash_duration: float
+):
+    """Create a layout that flashes panels when counts change."""
     layout = Layout(name="root")
     layout.split_column(
         Layout(name="header", size=5),
@@ -563,28 +570,43 @@ def create_session_watch_display(session_info, status_count: Dict[TaskStatus, in
     header_table.add_column("Value", style="cyan")
     header_table.add_row("[bold]Session ID:[/bold]", session_info.session_id, style="cyan")
     header_table.add_row("[bold]Created at:[/bold]", str(session_info.created_at), style="cyan")
-    header_table.add_row("[bold]Status:[/bold]", Text(SessionStatus(session_info.status).name, style="green" if session_info.status == SessionStatus.RUNNING else "yellow"))
+    header_table.add_row(
+        "[bold]Status:[/bold]",
+        Text(
+            SessionStatus(session_info.status).name,
+            style="green" if session_info.status == SessionStatus.RUNNING else "yellow"
+        )
+    )
 
     total_tasks = sum(status_count.values())
 
     statuses_table = Table.grid(expand=True)
     columns_per_row = 5
     row_items = []
+    now = time.time()  
 
+    # Iterate over *all* TaskStatus values to keep layout fixed
     for status in TaskStatus:
         count = status_count.get(status, 0)
         percentage = (count / total_tasks) * 100 if total_tasks > 0 else 0
+
+        # Decide if we "flash" this panel
+        time_since_change = now - last_change_time.get(status, 0)
+        if time_since_change < flash_duration:
+            # recently changed -> special "flash" style
+            border_style = FLASH_STYLE + STATUS_COLORS.get(status, "white")
+        else:
+            # normal color for that status
+            border_style = STATUS_COLORS.get(status, "white")
 
         panel_text = Text()
         panel_text.append(f"{status.name}\n", style="bold")
         panel_text.append(f"Count: {count}\n", style="white")
         panel_text.append(f"{percentage:.2f}%", style="white")
 
-        status_color = STATUS_COLORS.get(status, "white")
         panel = Panel(
             panel_text,
-            style=status_color,
-            border_style="bright_black"
+            border_style=border_style,
         )
 
         row_items.append(panel)
@@ -600,9 +622,11 @@ def create_session_watch_display(session_info, status_count: Dict[TaskStatus, in
 
     completed_tasks = status_count.get(TaskStatus.COMPLETED, 0)
 
-    layout["header"].split_row(header_table, Text.from_markup(f"[bold]Completed:[/bold] {completed_tasks}/{total_tasks}"))
+    layout["header"].split_row(
+        header_table, 
+        Panel(Text.from_markup(f"[bold]Completed:[/bold] {completed_tasks}/{total_tasks}", justify="center"))
+    )
     return layout
-
 
 @sessions.command("watch")
 @click.argument("session-id", required=True, type=str)
@@ -615,18 +639,58 @@ def sessions_watch(
     output: str,
     debug: bool,
 ):
+    previous_counts = {}
+    last_change_time = {}
+    flash_duration = 0.5  # half-second flash
+
     with grpc.insecure_channel(endpoint) as channel:
         sessions_client = ArmoniKSessions(channel)
         tasks_client = ArmoniKTasks(channel)
+
+        # Fetch initial data
         session_info = sessions_client.get_session(session_id)
         status_count = tasks_client.count_tasks_by_status(Task.session_id == session_id)
-        with Live(create_session_watch_display(session_info, status_count), refresh_per_second=refresh_rate, screen=True) as live:
+        previous_counts = status_count.copy()
+
+        # Render the initial layout
+        display = create_session_watch_display(
+            session_info, status_count, last_change_time, flash_duration
+        )
+
+        with Live(display, refresh_per_second=refresh_rate, screen=True) as live:
             while True:
-                curr_time = time.time()
+                start_loop = time.time()
+
+                # Get updated data
                 session_info = sessions_client.get_session(session_id)
-                status_count = tasks_client.count_tasks_by_status(Task.session_id == session_id)
-                live.update(create_session_watch_display(session_info, status_count))
-                elapsed = time.time() - curr_time
-                to_sleep = 1 / refresh_rate - elapsed # This is done to maintain the refresh rate
+                status_count = tasks_client.count_tasks_by_status(
+                    Task.session_id == session_id
+                )
+
+                # Check for changes and record the time
+                for st, new_value in status_count.items():
+                    old_value = previous_counts.get(st, 0)
+                    if new_value != old_value:
+                        last_change_time[st] = time.time()
+
+                # Also handle statuses that might have been in previous_counts
+                # but no longer appear in status_count
+                for st in previous_counts:
+                    if st not in status_count:
+                        if previous_counts[st] != 0:
+                            last_change_time[st] = time.time()
+
+                # Update the Live display
+                display = create_session_watch_display(
+                    session_info, status_count, last_change_time, flash_duration
+                )
+                live.update(display)
+
+                # Update previous counts to the current ones
+                previous_counts = status_count.copy()
+
+                # Sleep to maintain refresh rate
+                elapsed = time.time() - start_loop
+                to_sleep = (1 / refresh_rate) - elapsed
                 if to_sleep > 0:
-                    sleep(to_sleep)
+                    time.sleep(to_sleep)
