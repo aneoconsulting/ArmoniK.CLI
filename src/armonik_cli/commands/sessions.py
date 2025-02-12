@@ -1,8 +1,9 @@
+from time import sleep
 import grpc
 import rich_click as click
 
 from datetime import timedelta
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from armonik.client.sessions import ArmoniKSessions
 from armonik.common import Session, TaskOptions, Direction
@@ -18,6 +19,7 @@ from armonik_cli.core import (
 )
 from armonik_cli.core.params import FieldParam
 
+from rich.panel import Panel
 
 SESSION_TABLE_COLS = [("ID", "SessionId"), ("Status", "Status"), ("CreatedAt", "CreatedAt")]
 
@@ -483,3 +485,148 @@ def session_stop_submission(
             print_format=output,
             table_cols=SESSION_TABLE_COLS,
         )
+
+
+
+# from armonik.client import ArmoniKTasks
+# from armonik.common import Task, SessionStatus, TaskStatus
+# from rich.live import Live
+# from rich.layout import Layout
+# from rich.table import Table
+# from rich.text import Text
+# import time
+
+# def create_session_watch_display(session_info: Session, status_count: Dict[TaskStatus, int]):
+#     # Display a table with meta data about the task and then set up a layout where you show the number of items in each status, along with the percentage of the total, sort of like a mini dashboard
+#     layout = Layout(name="root")
+#     layout.split(Layout(name="header"), Layout(name="body"))
+
+#     # Create header panel with session info
+#     header_text = Text(f"Session ID: {session_info.session_id}\n")
+#     header_text.append(f"Created At: {session_info.created_at}\n")
+#     header_text.append(f"Status: {SessionStatus(session_info.status).name}\n")
+#     header_panel = Panel(header_text, title="Session Info")
+
+#     # Create body panel with task status counts
+#     total_tasks = sum(status_count.values())
+#     body_table = Table(title="Task Status Counts")
+#     body_table.add_column("Status", justify="right", style="cyan", no_wrap=True)
+#     body_table.add_column("Count", justify="right", style="magenta")
+#     body_table.add_column("Percentage", justify="right", style="green")
+
+#     for status, count in status_count.items():
+#         percentage = (count / total_tasks) * 100 if total_tasks > 0 else 0
+#         body_table.add_row(status.name, str(count), f"{percentage:.2f}%")
+
+#     body_panel = Panel(body_table)
+
+#     layout["header"].update(header_panel)
+#     layout["body"].update(body_panel)
+
+#     return layout
+
+from armonik.client import ArmoniKTasks, ArmoniKSessions
+from armonik.common import Task, SessionStatus, TaskStatus
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+from rich.columns import Columns
+from rich.bar import Bar
+from typing import Dict
+import time
+import click
+import grpc
+from rich.live import Live
+from time import sleep
+
+STATUS_COLORS = {
+    TaskStatus.CREATING: "grey37",
+    TaskStatus.PROCESSING: "yellow",
+    TaskStatus.COMPLETED: "green",
+    TaskStatus.CANCELLED: "red",
+    TaskStatus.ERROR: "bold red",
+    TaskStatus.UNSPECIFIED: "bright_black",
+}
+
+def create_session_watch_display(session_info, status_count: Dict[TaskStatus, int]):
+    """Create a more visually appealing layout for session monitoring."""
+
+    layout = Layout(name="root")
+    layout.split_column(
+        Layout(name="header", size=5),
+        Layout(name="statuses", ratio=1),
+    )
+
+    header_table = Table(show_header=False)
+    header_table.add_column("Label", style="bold cyan")
+    header_table.add_column("Value", style="cyan")
+    header_table.add_row("[bold]Session ID:[/bold]", session_info.session_id, style="cyan")
+    header_table.add_row("[bold]Created at:[/bold]", str(session_info.created_at), style="cyan")
+    header_table.add_row("[bold]Status:[/bold]", Text(SessionStatus(session_info.status).name, style="green" if session_info.status == SessionStatus.RUNNING else "yellow"))
+
+    total_tasks = sum(status_count.values())
+
+    statuses_table = Table.grid(expand=True)
+    columns_per_row = 5
+    row_items = []
+
+    for status in TaskStatus:
+        count = status_count.get(status, 0)
+        percentage = (count / total_tasks) * 100 if total_tasks > 0 else 0
+
+        panel_text = Text()
+        panel_text.append(f"{status.name}\n", style="bold")
+        panel_text.append(f"Count: {count}\n", style="white")
+        panel_text.append(f"{percentage:.2f}%", style="white")
+
+        status_color = STATUS_COLORS.get(status, "white")
+        panel = Panel(
+            panel_text,
+            style=status_color,
+            border_style="bright_black"
+        )
+
+        row_items.append(panel)
+
+        if len(row_items) == columns_per_row:
+            statuses_table.add_row(*row_items)
+            row_items = []
+
+    if row_items:
+        statuses_table.add_row(*row_items)
+
+    layout["statuses"].update(statuses_table)
+
+    completed_tasks = status_count.get(TaskStatus.COMPLETED, 0)
+
+    layout["header"].split_row(header_table, Text.from_markup(f"[bold]Completed:[/bold] {completed_tasks}/{total_tasks}"))
+    return layout
+
+
+@sessions.command("watch")
+@click.argument("session-id", required=True, type=str)
+@click.option("--refresh-rate", type=int, default=10, help="Refresh rate in seconds.")
+@base_command
+def sessions_watch(
+    endpoint: str,
+    session_id: str,
+    refresh_rate: int,
+    output: str,
+    debug: bool,
+):
+    with grpc.insecure_channel(endpoint) as channel:
+        sessions_client = ArmoniKSessions(channel)
+        tasks_client = ArmoniKTasks(channel)
+        session_info = sessions_client.get_session(session_id)
+        status_count = tasks_client.count_tasks_by_status(Task.session_id == session_id)
+        with Live(create_session_watch_display(session_info, status_count), refresh_per_second=refresh_rate, screen=True) as live:
+            while True:
+                curr_time = time.time()
+                session_info = sessions_client.get_session(session_id)
+                status_count = tasks_client.count_tasks_by_status(Task.session_id == session_id)
+                live.update(create_session_watch_display(session_info, status_count))
+                elapsed = time.time() - curr_time
+                to_sleep = 1 / refresh_rate - elapsed # This is done to maintain the refresh rate
+                if to_sleep > 0:
+                    sleep(to_sleep)
