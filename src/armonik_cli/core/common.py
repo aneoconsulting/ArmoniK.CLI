@@ -1,8 +1,9 @@
 import rich_click as click
 
-from typing import Callable, Any
+from typing import Callable, Any, get_origin
 from typing_extensions import TypeAlias
 
+from armonik_cli.core.config import CliConfig
 from armonik_cli.core.options import GlobalOption
 
 
@@ -61,7 +62,7 @@ def apply_click_params(
 
 def global_cluster_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
     """
-    Adds global cluster configuration options to a Click command.
+    Adds global configuration options to a Click command.
 
     Args:
         command: The Click command function to decorate.
@@ -69,17 +70,16 @@ def global_cluster_config_options(command: Callable[..., Any]) -> Callable[..., 
     Returns:
         The decorated command function.
     """
-    return apply_click_params(command, endpoint_option)
-
-
-def global_common_options(command: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Adds global common options such as output format and debug mode to a Click command.
-
-    Args:
-        command: The Click command function to decorate.
-
-    Returns:
-        The decorated command function.
-    """
-    return apply_click_params(command, output_option, debug_option)
+    config = CliConfig()
+    generated_click_options = []
+    for field, field_info in CliConfig.ConfigModel.model_fields.items():
+        generated_click_options.append(
+            click.option(
+                f"--{field.replace('_', '-')}",
+                default=config.get(field),
+                required=False,
+                help=field_info.description.split(" - ")[1],
+                cls=GlobalOption,
+            )
+        )
+    return apply_click_params(command, *generated_click_options)

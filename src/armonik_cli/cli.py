@@ -14,9 +14,9 @@ def cli() -> None:
     pass
 
 
-cli.add_command(commands.sessions)
-cli.add_command(commands.tasks)
-cli.add_command(commands.partitions)
-cli.add_command(commands.results)
+# cli.add_command(commands.sessions)
+# cli.add_command(commands.tasks)
+# cli.add_command(commands.partitions)
+# cli.add_command(commands.results)
 cli.add_command(commands.cluster)
 cli.add_command(commands.config)

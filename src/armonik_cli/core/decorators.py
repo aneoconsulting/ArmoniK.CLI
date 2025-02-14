@@ -4,7 +4,7 @@ from functools import wraps, partial
 from typing import Callable, Optional, Any
 
 from armonik_cli.core.console import console
-from armonik_cli.core.common import global_cluster_config_options, global_common_options
+from armonik_cli.core.common import global_cluster_config_options
 from armonik_cli.exceptions import (
     InternalCliError,
     InternalArmoniKError,
@@ -75,7 +75,7 @@ def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
         return partial(base_group)
 
     @global_cluster_config_options
-    @global_common_options
+    # @global_common_options
     @wraps(func)
     def wrapper(endpoint: str, output: str, debug: bool, *args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
@@ -99,7 +99,7 @@ def base_command(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any
         return partial(base_command)
 
     @global_cluster_config_options
-    @global_common_options
+    # @global_common_options
     @error_handler
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:

@@ -72,3 +72,21 @@ def cluster_health(endpoint: str, output: str, debug: bool) -> None:
             print(panel)
         else:
             console.formatted_print(health_status, print_format=output)
+
+from armonik_cli.core.config import CliConfig
+
+# TODO: remove this
+@cluster.command(name="test")
+@click.option("--test", help="Test option")
+@base_command
+def cluster_test(test, **kwargs) -> None:
+    """Test config"""
+    config = CliConfig()    
+    print("Before: ", config)
+    config = CliConfig.from_dict(kwargs)
+    print("After: ", config)
+    
+# The problem with this is that awareness of the variation/changes in the config is only know at the level of the command.
+# Would be handy to know if the option was set by the user explicitely or not
+    # filter kwargs to know if param came from user or just default
+

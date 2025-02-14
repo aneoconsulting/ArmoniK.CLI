@@ -29,6 +29,13 @@ class CliConfig:
             file_config = parse_yaml_raw_as(cls.ConfigModel, f.read())
         # Merge with defaults by unpacking only the set fields over the default model
         return cls.ConfigModel(**file_config.model_dump(exclude_unset=True))
+    
+    @classmethod
+    def from_dict(cls, config_dict: dict) -> "ConfigModel":
+        """
+        Loads the config from the given dictionary and merges with default values.
+        """
+        return cls.ConfigModel(**config_dict)
 
     def __init__(self):
         self.default_path = Path(get_app_dir("armonik_cli")) / "config.yml"
