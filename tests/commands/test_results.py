@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+import pathlib
 from unittest.mock import Mock, mock_open
 import pytest
 
@@ -353,3 +354,40 @@ def test_result_upload_data_file_not_found(mocker):
         ENDPOINT,
     ]
     run_cmd_and_assert_exit_code(cmd, split=False, exit_code=2)
+
+
+def test_result_download_data(mocker):
+    # Create a mock channel that supports context manager
+    mock_channel = Mock()
+    mock_channel.__enter__ = Mock(return_value=mock_channel)
+    mock_channel.__exit__ = Mock(return_value=None)
+
+    # Patch the channel creation
+    mocker.patch("grpc.insecure_channel", return_value=mock_channel)
+
+    # Patch the methods on ArmoniKResults class
+    mocker.patch.object(ArmoniKResults, "download_result_data", return_value=raw_results[0])
+
+    # Mock file operations
+    mock_file_content = b"file content"
+    mocker.patch("builtins.open", mock_open(read_data=mock_file_content))
+
+    cmd = [
+        "result",
+        "download-data",
+        "--endpoint",
+        ENDPOINT,
+        "session-id",
+        "--id",
+        "result-id",
+        "--path",
+        "output",
+        "--suffix",
+        "_session-id.txt",
+        "--skip-not-found",
+        "--debug",
+    ]
+    run_cmd_and_assert_exit_code(cmd, split=False)
+
+    ArmoniKResults.download_result_data.assert_called_once_with("result-id", "session-id")
+    open.assert_called_once_with(pathlib.PosixPath("output/result-id_session-id.txt"), "wb")
