@@ -1,8 +1,9 @@
 from collections import defaultdict
+import pathlib
 import grpc
 import rich_click as click
 
-from typing import IO, List, Union
+from typing import IO, List, Optional, Union
 
 from armonik.client.results import ArmoniKResults
 from armonik.common import Result, Direction
@@ -157,6 +158,87 @@ def result_create(
             )
             created_results += created_results_data.values()
         console.formatted_print(created_results, print_format=output, table_cols=RESULT_TABLE_COLS)
+
+
+@results.command(name="download-data")
+@click.argument("session-id", type=str, required=True)
+@click.option(
+    "--id",
+    "result_ids",
+    type=str,
+    multiple=True,
+    required=True,
+    help="Result IDs to download data from.",
+)
+@click.option(
+    "--path",
+    "download_path",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=pathlib.Path),
+    cls=MutuallyExclusiveOption,
+    mutual=["std_out"],
+    required=False,
+    default=pathlib.Path.cwd(),
+    help="Path to save the downloaded data in.",
+)
+@click.option(
+    "--suffix",
+    type=str,
+    required=False,
+    default="",
+    help="Suffix to add to the downloaded files (File extension for example).",
+)
+@click.option(
+    "--std-out",
+    cls=MutuallyExclusiveOption,
+    mutual=["path"],
+    is_flag=True,
+    help="When set, the downloaded data will be printed to the standard output.",
+)
+@click.option(
+    "--skip-not-found",
+    is_flag=True,
+    help="Skips results that haven't been found when trying to download them.",
+)
+@base_command
+def results_download_data(
+    endpoint: str,
+    output: str,
+    session_id: str,
+    result_ids: List[str],
+    download_path: pathlib.Path,
+    suffix: str,
+    std_out: Optional[bool],
+    skip_not_found: bool,
+    debug: bool,
+):
+    """Download a list of results from your cluster."""
+    with grpc.insecure_channel(endpoint) as channel:
+        results_client = ArmoniKResults(channel)
+        downloaded_results = []
+        for result_id in result_ids:
+            try:
+                data = results_client.download_result_data(result_id, session_id)
+            except grpc.RpcError as e:
+                if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
+                    continue
+                else:
+                    raise e
+            downloaded_result_obj = {"ResultId": result_id}
+            if std_out:
+                downloaded_result_obj["Data"] = data
+                downloaded_result_table = [("ResultId", "ResultId"), ("Data", "Data")]
+            else:
+                result_download_path = download_path / (result_id + suffix)
+                downloaded_result_table = [("ResultId", "ResultId"), ("Path", "Path")]
+                with open(result_download_path, "wb") as result_file_handle:
+                    result_file_handle.write(data)
+                    downloaded_result_obj["Path"] = str(result_download_path)
+            downloaded_results.append(downloaded_result_obj)
+        console.formatted_print(
+            downloaded_result_obj,
+            print_format=output,
+            table_cols=downloaded_result_table,
+        )
 
 
 @results.command(name="upload-data")
