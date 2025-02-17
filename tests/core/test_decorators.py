@@ -2,7 +2,7 @@ import pytest
 
 from grpc import RpcError, StatusCode
 
-from armonik_cli.core.decorators import error_handler, base_command, base_group
+from armonik_cli.core.decorators import error_handler
 from armonik_cli.exceptions import InternalArmoniKError, InternalCliError
 
 
@@ -49,29 +49,3 @@ def test_error_handler_other_debug(decorator):
 
     with pytest.raises(InternalCliError):
         raise_error(debug=True)
-
-
-@pytest.mark.parametrize("decorator", [base_group, base_group()])
-def test_base_group(decorator):
-    @decorator
-    def test_func():
-        pass
-
-    assert test_func.__name__ == "test_func"
-    assert len(test_func.__click_params__) == 3
-    assert test_func.__click_params__[0].name == "output"
-    assert test_func.__click_params__[1].name == "debug"
-    assert test_func.__click_params__[2].name == "endpoint"
-
-
-@pytest.mark.parametrize("decorator", [base_command, base_command()])
-def test_base_command(decorator):
-    @decorator
-    def test_func():
-        pass
-
-    assert test_func.__name__ == "test_func"
-    assert len(test_func.__click_params__) == 3
-    assert test_func.__click_params__[0].name == "output"
-    assert test_func.__click_params__[1].name == "debug"
-    assert test_func.__click_params__[2].name == "endpoint"

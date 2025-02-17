@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Union, get_origin, get_args
 
 
 def parse_time_delta(time_str: str) -> timedelta:
@@ -43,3 +44,23 @@ def remove_string_delimiters(s: str) -> str:
     if s[0] == s[-1] == '"' or s[0] == s[-1] == "'":
         return s[1:-1]
     return s
+
+
+def pretty_type(tp):
+    """Recursively formats type hints for better readability."""
+    origin = get_origin(tp)
+    args = get_args(tp)
+
+    if origin is Union and type(None) in args:
+        non_none_types = [arg for arg in args if arg is not type(None)]
+        return (
+            pretty_type(non_none_types[0])
+            if len(non_none_types) == 1
+            else f"Union[{', '.join(map(pretty_type, non_none_types))}]"
+        )
+
+    if origin is None:
+        return tp.__name__ if hasattr(tp, "__name__") else str(tp)
+
+    formatted_args = ", ".join(pretty_type(arg) for arg in args)
+    return f"{origin.__name__}[{formatted_args}]"

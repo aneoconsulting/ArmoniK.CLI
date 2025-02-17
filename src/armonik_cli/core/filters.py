@@ -26,9 +26,36 @@ from armonik.common.filter import (
     FilterError,
 )
 from armonik.common.filter.filter import FType
-from lark import Lark, Transformer, Token
+from lark import Lark, Transformer, Token, UnexpectedInput
 
 from armonik_cli.utils import parse_time_delta, remove_string_delimiters
+
+
+class ParsingError(Exception):
+    """
+    Exception raised for parsing errors in filter expressions.
+
+    Attributes:
+        msg: The error message describing the parsing issue.
+        context: A snippet of the expression showing the error in context.
+    """
+
+    def __init__(self, msg: str, context: str = "") -> None:
+        super().__init__()
+        self.msg = msg
+        self.context = context
+
+    def __str__(self) -> str:
+        """
+        Generate a string representation of the parsing error.
+
+        Returns:
+            A detailed error message.
+        """
+        message = "Filter syntax error.\n\n"
+        message += "\n".join([f"\t{line}" for line in self.context.split("\n")])
+        message += f"\n{self.msg}"
+        return message
 
 
 class SemanticError(Exception):
@@ -128,16 +155,33 @@ class FilterParser:
         Returns:
             A Filter object constructed from the parsed expression.
         """
-        tree = self.get_parser().parse(expression)
-        filter = FilterTransformer(
-            obj=self.obj,
-            filter=self.filter,
-            status_enum=self.status_enum,
-            options_fields=self.options_fields,
-            output_fields=self.output_fields,
-            expr=expression,
-        ).transform(tree)
-        return filter
+        if not expression:
+            raise ParsingError(msg="Empty filter expression.")
+        try:
+            tree = self.get_parser().parse(expression)
+            filter = FilterTransformer(
+                obj=self.obj,
+                filter=self.filter,
+                status_enum=self.status_enum,
+                options_fields=self.options_fields,
+                output_fields=self.output_fields,
+                expr=expression,
+            ).transform(tree)
+            return filter
+        except UnexpectedInput as error:
+            label = error.match_examples(
+                parse_fn=self.get_parser().parse,
+                examples={
+                    "Invalid character.": ["#", "c#"],
+                    "Invalid boolean operator.": ["(status = running) zig (session_id = string)"],
+                    "Missing field before operator.": ["= string"],
+                    "Missing operator after identifier": ["session_id string"],
+                    "Missing value after operator.": ["session_id ="],
+                },
+            )
+            if label is None:
+                label = "The expression is not a valid filter."
+            raise ParsingError(msg=label, context=error.get_context(expression))
 
 
 class FilterTransformer(Transformer):
@@ -277,7 +321,7 @@ class FilterTransformer(Transformer):
             field, filter = args[0].value
             if isinstance(filter, BooleanFilter):
                 return filter
-            msg = f"{self._obj.__name__.capitalize()} filter's '{field}' field is not a boolean field."
+            msg = f"{self._obj.__name__.capitalize()} filter's '{field}' field is not a boolean field. You must use it in an expression of the form 'field op value'."
             raise SemanticError(
                 msg=msg,
                 expr=self._expr,
