@@ -10,10 +10,10 @@ from pathlib import Path
 from armonik import common
 from armonik.common import Filter
 from armonik.common.filter.filter import FType
-from lark.exceptions import VisitError, UnexpectedInput
+from lark.exceptions import VisitError
 
 from armonik_cli.utils import parse_time_delta
-from armonik_cli.core.filters import FilterParser
+from armonik_cli.core.filters import FilterParser, ParsingError
 
 
 class KeyValuePairParam(click.ParamType):
@@ -135,8 +135,8 @@ class FilterParam(click.ParamType):
         """
         try:
             return self.parser.parse(value)
-        except UnexpectedInput as error:
-            self.fail(f"Filter syntax error: {error.get_context(value, span=40)}.", param, ctx)
+        except ParsingError as error:
+            self.fail(str(error), param, ctx)
         except VisitError as error:
             self.fail(str(error.orig_exc), param, ctx)
 
