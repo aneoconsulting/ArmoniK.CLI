@@ -1,14 +1,22 @@
+import pathlib
+
 import grpc
+import rich_click as click
 
 from functools import wraps, partial
 from typing import Callable, Optional, Any
+from typing_extensions import TypeAlias
 
+from armonik_cli.core.configuration import CliConfig
 from armonik_cli.core.console import console
-from armonik_cli.core.common import global_cluster_config_options, global_common_options
+
+from armonik_cli.core.options import GlobalOption
 from armonik_cli.exceptions import (
     InternalCliError,
     InternalArmoniKError,
 )
+
+from click.core import ParameterSource
 
 
 def error_handler(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
@@ -60,6 +68,85 @@ def error_handler(func: Optional[Callable[..., Any]] = None) -> Callable[..., An
     return wrapper
 
 
+ClickOption: TypeAlias = Callable[[Callable[..., Any]], Callable[..., Any]]
+
+
+def apply_click_params(
+    command: Callable[..., Any], *click_options: ClickOption
+) -> Callable[..., Any]:
+    """
+    Applies multiple Click options to a command.
+
+    Args:
+        command: The Click command function to decorate.
+        *click_options: The Click options to apply.
+
+    Returns:
+        The decorated command function.
+    """
+    for click_option in click_options:
+        command = click_option(command)
+    return command
+
+
+def global_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
+    generated_click_options = [
+        click.option(
+            "-c",
+            "--config",
+            "additional_config",
+            type=click.Path(exists=True, dir_okay=False),
+            required=False,
+            help="Path to additional config file.",
+            cls=GlobalOption,
+        )
+    ]
+    for _, field_info in CliConfig.ConfigModel.model_fields.items():
+        if field_info.metadata[0]["cli_option"]:
+            generated_click_options.append(field_info.metadata[0]["cli_option"])
+    return apply_click_params(command, *generated_click_options)
+
+
+def inject_config(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    Decorator to inject a CLI configuration object into a Click command.
+
+    Args:
+        func: The command function to be decorated. If None, a partial function is returned,
+            allowing the decorator to be used with parentheses.
+
+    Returns:
+        The wrapped function with the CLI configuration object injected.
+    """
+    if func is None:
+        return partial(inject_config)
+
+    @click.pass_context
+    @wraps(func)
+    def wrapper(ctx, *args, **kwargs):
+        def filter_defaults(x: dict) -> dict:
+            """Remove non-explicitly assigned values from the incoming commandline config."""
+            return {
+                key: value
+                for key, value in x.items()
+                if ctx.get_parameter_source(key)
+                not in [ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP]
+            }
+
+        final_config = CliConfig()
+        if "additional_config" in kwargs and kwargs["additional_config"] is not None:
+            additional_config = CliConfig.from_file(pathlib.Path(kwargs["additional_config"]))
+            final_config = final_config.layer(**additional_config.model_dump(exclude_unset=True))
+            final_config = final_config.layer(**filter_defaults(kwargs))
+        else:
+            final_config = final_config.layer(**filter_defaults(kwargs))
+        final_config.validate_config()
+        kwargs["config"] = final_config
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     """
     Decorator to add global cluster configuration and common options to a Click group.
@@ -74,35 +161,52 @@ def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     if func is None:
         return partial(base_group)
 
-    @global_cluster_config_options
-    @global_common_options
+    @global_config_options
     @wraps(func)
-    def wrapper(endpoint: str, output: str, debug: bool, *args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        # I need to strip args of all of the CliConfig arguments
+        non_used_positional_args = ["config", "additional_config"] + [
+            field for field in CliConfig.ConfigModel.model_fields.keys()
+        ]
+        for arg in non_used_positional_args:
+            if arg in kwargs:
+                del kwargs[arg]
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def base_command(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+def base_command(
+    func: Optional[Callable[..., Any]] = None,
+    *,
+    pass_config: bool = False,
+    auto_output: Optional[str] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
-    Decorator to add global cluster configuration and common options and error handling to a
-    Click command function.
+    Decorator to add global cluster configuration, common options, and error handling
+    to a Click command function.
 
     Args:
-        func: The command function to be decorated. If None, a partial function is returned,
-            allowing the decorator to be used with parentheses.
+        func (Optional[Callable]): The function to be decorated. If None, returns a decorator.
+        pass_config (bool): If True, passes the config to the decorated function.
+        auto_output (Optional[str]): If provided, overrides 'auto' output format with this value.
 
     Returns:
-        The wrapped function with added CLI options and error handling.
+        Callable: A decorator that wraps the function with CLI options and error handling.
     """
     if func is None:
-        return partial(base_command)
+        return partial(base_command, pass_config=pass_config, auto_output=auto_output)
 
-    @global_cluster_config_options
-    @global_common_options
     @error_handler
+    @inject_config
+    @global_config_options
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if auto_output is not None and kwargs.get("output") == "auto":
+            kwargs["output"] = auto_output
+        if not pass_config:
+            kwargs.pop("config", None)
+            kwargs.pop("additional_config", None)
         return func(*args, **kwargs)
 
     return wrapper
