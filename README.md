@@ -1,46 +1,136 @@
-# ArmoniK Admin CLI.
+# ArmoniK Admin CLI
 
-This repository is part of the [ArmoniK](https://github.com/aneoconsulting/ArmoniK) project. It provides a command-line tool to monitor and manage ArmoniK clusters.
+<div align="center">
+
+<!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
+[![Latest Release](https://img.shields.io/github/v/release/aneoconsulting/ArmoniK.Admin.CLI)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/releases)
+[![License](https://img.shields.io/github/license/aneoconsulting/ArmoniK.Admin.CLI?label=License&color=blue)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/docs/index.rst)
+
+Command-line interface for monitoring and managing [ArmoniK](https://github.com/aneoconsulting/ArmoniK) clusters.
+
+<!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
+[Documentation](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/docs/index.rst) •
+[Getting Started](#getting-started) •
+[Contributing](#contributing)
+
+</div>
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+  - [Recommended Installation (pipx)](#recommended-installation-pipx)
+  - [Alternative Installation Methods](#alternative-installation-methods)
+  - [Development Installation](#development-installation)
+- [Getting Started](#getting-started)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Overview
+
+The ArmoniK CLI is a tool that provides commands to monitor and manage computations in ArmoniK clusters. It serves as a powerful alternative to the ArmoniK Admin GUI, offering the same core functionality through a terminal interface.
+
+The CLI enables users to:
+- Manage results, sessions and partitions.
+- Monitor task execution.
+- Query task results and metadata.
+
+A key advantage of the CLI is its ability to support automation through scripts and scheduled jobs. This makes it ideal for DevOps workflows, automated testing, and continuous integration/deployment pipelines where GUI interaction is not practical.
 
 ## Installation
 
-### Requirements
+### Recommended Installation (pipx)
 
-The CLI requires Python version 3.8 or newer. In order to install the ArmoniK CLI in an isolated environment, you must have python3-venv installed on your machine.
+We recommend using [pipx](https://pypa.github.io/pipx/) to install the CLI in an isolated environment:
 
 ```bash
-sudo apt update && sudo apt install python3-venv
+pipx install armonik-cli
 ```
 
-### Install from source
-
-To install the CLI from source, first clone this repository.
+You can check the installation by running:
 
 ```bash
-git clone git@github.com/aneoconsulting/ArmoniK.Admin.CLI.git
+armonik --version
 ```
 
-Navigate in the root directory
+### Alternative Installation Methods
+
+Alternatively, you can install the CLI using pip or from source.
+
+#### Using pip
 
 ```bash
+pip install armonik-cli
+```
+
+You can check the installation by running:
+
+```bash
+armonik --version
+```
+
+#### From source
+
+```bash
+git clone https://github.com/aneoconsulting/ArmoniK.Admin.CLI.git
 cd ArmoniK.Admin.CLI
+pip install -e .
 ```
 
-Create and activate the virtual environment
+You can check the installation by running:
 
 ```bash
-python -m venv ./venv
-source ./venv/bin/activate
+armonik --version
 ```
 
-Install the CLI in the environment you just created.
+### Development Installation
+
+If you want to contribute to the project, follow the steps for installing from source and add the `[dev,tests]` extra:
 
 ```bash
-pip install .
+pip install -e .[dev,tests]
+```
+
+You can check the installation by running:
+
+```bash
+armonik --version
+```
+
+## Getting Started
+
+To use the CLI with an ArmoniK cluster, you must provide the CLI with the cluster credentials. The most simple way to do this is to use the `--endpoint` option:
+
+```bash
+armonik --endpoint <cluster-endpoint> cluster info
+```
+
+There exists additional options to connect to clusters that use TLS. In addition, to simplify the usage of the CLI, you can set the default values for the `--endpoint` and the others connection options using a configuration file.
+
+To list available commands and options, you can use the `--help` or `-h` option:
+
+```bash
+armonik --help
+```
+
+To learn more about the CLI, please refer to the documentation.
+
+## Documentation
+
+<!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
+The full documentation is available on [ReadTheDocs](https://armonik-cli.readthedocs.io/en/latest/). Otherwise, you can build and view the documentation locally by running:
+
+```bash
+pip install -e .[docs]
+sphinx-autobuild docs _build/html
 ```
 
 ## Contributing
 
-Contributions are always welcome!
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more information.
 
-See [CONTRIBUTING](CONTRIBUTING.md) for ways to get started.
+## License
+
+This project is licensed under the [Apache 2.0 License](LICENSE).
