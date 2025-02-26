@@ -203,6 +203,7 @@ def base_command(
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         if auto_output is not None and kwargs.get("output") == "auto":
+            kwargs["config"].output = auto_output
             kwargs["output"] = auto_output
         if not pass_config:
             kwargs.pop("config", None)

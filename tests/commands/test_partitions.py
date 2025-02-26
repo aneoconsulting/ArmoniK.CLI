@@ -52,7 +52,7 @@ serialized_partitions = [
 ]
 
 
-@pytest.mark.parametrize("cmd", [f"partition list -e {ENDPOINT} --debug"])
+@pytest.mark.parametrize("cmd", [f"partition list -e {ENDPOINT} --output json --debug"])
 def test_partition_list(mocker, cmd):
     mocker.patch.object(
         ArmoniKPartitions,
@@ -67,11 +67,11 @@ def test_partition_list(mocker, cmd):
     "cmd, expected_output",
     [
         (
-            f"partition get --endpoint {ENDPOINT} {serialized_partitions[0]['Id']}",
+            f"partition get --endpoint {ENDPOINT} --output json {serialized_partitions[0]['Id']}",
             [serialized_partitions[0]],
         ),
         (
-            f"partition get --endpoint {ENDPOINT} {serialized_partitions[0]['Id']} {serialized_partitions[1]['Id']}",
+            f"partition get --endpoint {ENDPOINT} --output json {serialized_partitions[0]['Id']} {serialized_partitions[1]['Id']}",
             [serialized_partitions[0], serialized_partitions[1]],
         ),
     ],

@@ -1,4 +1,3 @@
-import grpc
 import rich_click as click
 
 from typing import List, Union
@@ -9,6 +8,7 @@ from armonik.common import Partition, Direction
 
 from armonik_cli.core import console, base_command, base_group
 from armonik_cli.core.params import FilterParam, FieldParam
+from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 
 PARTITIONS_TABLE_COLS = [("ID", "Id"), ("PodReserved", "PodReserved"), ("PodMax", "PodMax")]
 
@@ -47,19 +47,18 @@ def partitions() -> None:
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def partition_list(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     filter_with: Union[PartitionFilter, None],
     sort_by: Filter,
     sort_direction: str,
     page: int,
     page_size: int,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """List the partitions in an ArmoniK cluster."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
         curr_page = page if page > 0 else 0
         partitions_list = []
@@ -80,19 +79,21 @@ def partition_list(
 
         if total > 0:
             console.formatted_print(
-                partitions_list, print_format=output, table_cols=PARTITIONS_TABLE_COLS
+                partitions_list, print_format=config.output, table_cols=PARTITIONS_TABLE_COLS
             )
 
 
 @partitions.command(name="get")
 @click.argument("partition-ids", type=str, nargs=-1, required=True)
-@base_command
-def partition_get(endpoint: str, output: str, partition_ids: List[str], debug: bool) -> None:
+@base_command(pass_config=True, auto_output="json")
+def partition_get(config: CliConfig, partition_ids: List[str], **kwargs) -> None:
     """Get a specific partition from an ArmoniK cluster given a <PARTITION-ID>."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
         partitions = []
         for partition_id in partition_ids:
             partition = partitions_client.get_partition(partition_id)
             partitions.append(partition)
-        console.formatted_print(partitions, print_format=output, table_cols=PARTITIONS_TABLE_COLS)
+        console.formatted_print(
+            partitions, print_format=config.output, table_cols=PARTITIONS_TABLE_COLS
+        )

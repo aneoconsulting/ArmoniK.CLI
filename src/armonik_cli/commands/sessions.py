@@ -16,6 +16,7 @@ from armonik_cli.core import (
     FilterParam,
     base_group,
 )
+from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 from armonik_cli.core.params import FieldParam
 
 
@@ -56,19 +57,18 @@ def sessions() -> None:
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def session_list(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     filter_with: Union[SessionFilter, None],
     sort_by: Filter,
     sort_direction: str,
     page: int,
     page_size: int,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """List the sessions of an ArmoniK cluster."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         curr_page = page if page > 0 else 0
         session_list = []
@@ -88,7 +88,9 @@ def session_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(session_list, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            session_list, print_format=config.output, table_cols=SESSION_TABLE_COLS
+        )
 
     # TODO: Use logger to display this information
     # console.print(f"\n{total} sessions found.")
@@ -96,16 +98,16 @@ def session_list(
 
 @sessions.command(name="get")
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
-def session_get(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
+@base_command(pass_config=True, auto_output="table")
+def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> None:
     """Get details of a given session."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         sessions = []
         for session_id in session_ids:
             session = sessions_client.get_session(session_id=session_id)
             sessions.append(session)
-        console.formatted_print(sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="create")
@@ -176,9 +178,9 @@ def session_get(endpoint: str, output: str, session_ids: List[str], debug: bool)
     help="Additional default options.",
     metavar="KEY=VALUE",
 )
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_create(
-    endpoint: str,
+    config: CliConfig,
     max_retries: int,
     max_duration: timedelta,
     priority: int,
@@ -190,11 +192,10 @@ def session_create(
     application_service: Union[str, None],
     engine_type: Union[str, None],
     option: Union[List[Tuple[str, str]], None],
-    output: str,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Create a new session."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         session_id = sessions_client.create_session(
             default_task_options=TaskOptions(
@@ -212,7 +213,7 @@ def session_create(
             partition_ids=partition if partition else [default_partition],
         )
         session = sessions_client.get_session(session_id=session_id)
-        console.formatted_print(session, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(session, print_format=config.output, table_cols=SESSION_TABLE_COLS)
 
 
 @sessions.command(name="cancel")
@@ -227,17 +228,12 @@ def session_create(
     help="Skips sessions that haven't been found when trying to cancel them.",
 )
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_cancel(
-    endpoint: str,
-    output: str,
-    session_ids: List[str],
-    confirm: bool,
-    skip_not_found: bool,
-    debug: bool,
+    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
 ) -> None:
     """Cancel sessions."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         cancelled_sessions = []
         for session_id in session_ids:
@@ -255,37 +251,39 @@ def session_cancel(
                     else:
                         raise e
         console.formatted_print(
-            cancelled_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+            cancelled_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
         )
 
 
 @sessions.command(name="pause")
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
-def session_pause(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
+@base_command(pass_config=True, auto_output="json")
+def session_pause(config: CliConfig, session_ids: List[str], **kwargs) -> None:
     """Pause sessions."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         paused_sessions = []
         for session_id in session_ids:
             session = sessions_client.pause_session(session_id=session_id)
             paused_sessions.append(session)
-        console.formatted_print(paused_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            paused_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="resume")
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
-def session_resume(endpoint: str, output: str, session_ids: List[str], debug: bool) -> None:
+@base_command(pass_config=True, auto_output="json")
+def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> None:
     """Resume sessions."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         resumed_sessions = []
         for session_id in session_ids:
             session = sessions_client.resume_session(session_id=session_id)
             resumed_sessions.append(session)
         console.formatted_print(
-            resumed_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+            resumed_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
         )
 
 
@@ -301,17 +299,16 @@ def session_resume(endpoint: str, output: str, session_ids: List[str], debug: bo
     help="Skips sessions that haven't been found when trying to close them.",
 )
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_close(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     session_ids: List[str],
     confirm: bool,
     skip_not_found: bool,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Close sessions."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         closed_sessions = []
         for session_id in session_ids:
@@ -328,7 +325,9 @@ def session_close(
                         continue
                     else:
                         raise e
-        console.formatted_print(closed_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            closed_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="purge")
@@ -343,17 +342,12 @@ def session_close(
     help="Skips sessions that haven't been found when trying to purge them.",
 )
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_purge(
-    endpoint: str,
-    output: str,
-    session_ids: List[str],
-    confirm: bool,
-    skip_not_found: bool,
-    debug: bool,
+    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
 ) -> None:
     """Purge sessions."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         purged_sessions = []
         for session_id in session_ids:
@@ -371,7 +365,9 @@ def session_purge(
                     else:
                         raise e
 
-        console.formatted_print(purged_sessions, print_format=output, table_cols=SESSION_TABLE_COLS)
+        console.formatted_print(
+            purged_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
+        )
 
 
 @sessions.command(name="delete")
@@ -386,17 +382,12 @@ def session_purge(
     help="Skips sessions that haven't been found when trying to delete them.",
 )
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_delete(
-    endpoint: str,
-    output: str,
-    session_ids: List[str],
-    confirm: bool,
-    skip_not_found: bool,
-    debug: bool,
+    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
 ) -> None:
     """Delete sessions and their associated tasks from the cluster."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         deleted_sessions = []
         for session_id in session_ids:
@@ -414,7 +405,7 @@ def session_delete(
                     else:
                         raise e
         console.formatted_print(
-            deleted_sessions, print_format=output, table_cols=SESSION_TABLE_COLS
+            deleted_sessions, print_format=config.output, table_cols=SESSION_TABLE_COLS
         )
 
 
@@ -442,19 +433,18 @@ def session_delete(
     help="Skips sessions that haven't been found when trying to block submission to them.",
 )
 @click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def session_stop_submission(
-    endpoint: str,
+    config: CliConfig,
     session_ids: str,
     confirm: bool,
     clients: bool,
     workers: bool,
     skip_not_found: bool,
-    output: str,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Stop clients and/or workers from submitting new tasks in a session."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         submission_blocked_sessions = []
         for session_id in session_ids:
@@ -480,6 +470,6 @@ def session_stop_submission(
                         raise e
         console.formatted_print(
             submission_blocked_sessions,
-            print_format=output,
+            print_format=config.output,
             table_cols=SESSION_TABLE_COLS,
         )

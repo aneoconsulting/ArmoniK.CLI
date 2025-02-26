@@ -69,7 +69,7 @@ def test_session(flag):
 @pytest.mark.parametrize(
     "cmd",
     [
-        f"session list --endpoint {ENDPOINT}",
+        f"session list --endpoint {ENDPOINT} --output json",
     ],
 )
 def test_session_list(mocker, cmd):
@@ -81,7 +81,7 @@ def test_session_list(mocker, cmd):
 @pytest.mark.parametrize(
     "cmd",
     [
-        f"session get --endpoint {ENDPOINT} id",
+        f"session get --endpoint {ENDPOINT} id --output json",
     ],
 )
 def test_session_get(mocker, cmd):
@@ -93,8 +93,8 @@ def test_session_get(mocker, cmd):
 @pytest.mark.parametrize(
     "cmd",
     [
-        f"session create --priority 1 --max-duration 01:00:0 --max-retries 2 --endpoint {ENDPOINT}",
-        f"session create --priority 1 --max-duration 01:00:0 --max-retries 2 --endpoint {ENDPOINT} "
+        f"session create --priority 1 --max-duration 01:00:0 --max-retries 2 --endpoint {ENDPOINT} --output json",
+        f"session create --priority 1 --max-duration 01:00:0 --max-retries 2 --endpoint {ENDPOINT} --output json "
         "--default-partition bench --partition bench --partition htcmock --option op1=val1 --option opt2=val2 "
         "--application-name app --application-version v1 --application-namespace ns --application-service svc --engine-type eng",
     ],

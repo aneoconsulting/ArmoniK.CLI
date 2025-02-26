@@ -207,7 +207,7 @@ serialized_tasks = [
 ]
 
 
-@pytest.mark.parametrize("cmd", [f"task list -e {ENDPOINT} --debug"])
+@pytest.mark.parametrize("cmd", [f"task list -e {ENDPOINT} --output json --debug"])
 def test_task_list(mocker, cmd):
     mocker.patch.object(ArmoniKTasks, "list_tasks", return_value=(2, deepcopy(raw_tasks)))
     result = run_cmd_and_assert_exit_code(cmd)
@@ -217,9 +217,12 @@ def test_task_list(mocker, cmd):
 @pytest.mark.parametrize(
     "cmd, expected_outputs",
     [
-        (f"task get --endpoint {ENDPOINT} {serialized_tasks[0]['Id']}", [serialized_tasks[0]]),
         (
-            f"task get --endpoint {ENDPOINT} {serialized_tasks[0]['Id']} {serialized_tasks[1]['Id']} --debug",
+            f"task get --endpoint {ENDPOINT} --output json {serialized_tasks[0]['Id']}",
+            [serialized_tasks[0]],
+        ),
+        (
+            f"task get --endpoint {ENDPOINT} --output json {serialized_tasks[0]['Id']} {serialized_tasks[1]['Id']} --debug",
             serialized_tasks,
         ),
     ],
