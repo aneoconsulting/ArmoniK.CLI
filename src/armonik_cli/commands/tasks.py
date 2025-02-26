@@ -1,4 +1,3 @@
-import grpc
 import rich_click as click
 
 from datetime import timedelta
@@ -9,6 +8,7 @@ from armonik.common import Task, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
 from armonik_cli.core import console, base_command, base_group
+from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
 
 TASKS_TABLE_COLS = [("ID", "Id"), ("Status", "Status"), ("CreatedAt", "CreatedAt")]
@@ -45,19 +45,18 @@ def tasks() -> None:
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def tasks_list(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     filter_with: Union[TaskFilter, None],
     sort_by: Filter,
     sort_direction: str,
     page: int,
     page_size: int,
-    debug: bool,
+    **kwargs,
 ) -> None:
     "List all tasks."
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         curr_page = page if page > 0 else 0
         tasks_list = []
@@ -78,29 +77,29 @@ def tasks_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(tasks_list, print_format=output, table_cols=TASKS_TABLE_COLS)
+        console.formatted_print(tasks_list, print_format=config.output, table_cols=TASKS_TABLE_COLS)
 
 
 @tasks.command(name="get")
 @click.argument("task-ids", type=str, nargs=-1, required=True)
-@base_command
-def tasks_get(endpoint: str, output: str, task_ids: List[str], debug: bool):
+@base_command(pass_config=True, auto_output="table")
+def tasks_get(config: CliConfig, task_ids: List[str], **kwargs):
     """Get a detailed overview of set of tasks given their ids."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks = []
         for task_id in task_ids:
             task = tasks_client.get_task(task_id)
             tasks.append(task)
-        console.formatted_print(tasks, print_format=output, table_cols=TASKS_TABLE_COLS)
+        console.formatted_print(tasks, print_format=config.output, table_cols=TASKS_TABLE_COLS)
 
 
 @tasks.command(name="cancel")
 @click.argument("task-ids", type=str, nargs=-1, required=True)
-@base_command
-def tasks_cancel(endpoint: str, output: str, task_ids: List[str], debug: bool):
+@base_command(pass_config=True, auto_output="json")
+def tasks_cancel(config: CliConfig, task_ids: List[str], **kwargs):
     "Cancel tasks given their ids. (They don't have to be in the same session necessarily)."
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks_client.cancel_tasks(task_ids)
 
@@ -191,10 +190,9 @@ def tasks_cancel(endpoint: str, output: str, task_ids: List[str], debug: bool):
     help="Additional task options.",
     metavar="KEY=VALUE",
 )
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def tasks_create(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     session_id: str,
     payload_id: str,
     expected_outputs: List[str],
@@ -209,10 +207,10 @@ def tasks_create(
     application_service: Union[str, None],
     engine_type: Union[str, None],
     options: Union[List[Tuple[str, str]], None],
-    debug: bool,
+    **kwargs,
 ):
     """Create a task."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         task_options = None
         if max_duration is not None and priority is not None and max_retries is not None:
@@ -245,6 +243,6 @@ def tasks_create(
 
         console.formatted_print(
             submitted_tasks[0],
-            print_format=output,
+            print_format=config.output,
             table_cols=TASKS_TABLE_COLS,
         )

@@ -62,7 +62,7 @@ serialized_results = [
 ]
 
 
-@pytest.mark.parametrize("cmd", [f"result list -e {ENDPOINT} -f session_id=id"])
+@pytest.mark.parametrize("cmd", [f"result list -e {ENDPOINT} --output json -f session_id=id"])
 def test_result_list(mocker, cmd):
     mocker.patch.object(ArmoniKResults, "list_results", return_value=(2, deepcopy(raw_results)))
     result = run_cmd_and_assert_exit_code(cmd)
@@ -73,11 +73,11 @@ def test_result_list(mocker, cmd):
     "cmd, expected_output",
     [
         (
-            f"result get --endpoint {ENDPOINT} {serialized_results[0]['ResultId']}",
+            f"result get --endpoint {ENDPOINT} --output json {serialized_results[0]['ResultId']}",
             [serialized_results[0]],
         ),
         (
-            f"result get --endpoint {ENDPOINT} {serialized_results[0]['ResultId']} {serialized_results[1]['ResultId']}",
+            f"result get --endpoint {ENDPOINT} --output json {serialized_results[0]['ResultId']} {serialized_results[1]['ResultId']}",
             [serialized_results[0], serialized_results[1]],
         ),
     ],
