@@ -57,7 +57,7 @@ def sessions() -> None:
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command(pass_config=True, auto_output="table")
+@base_command(pass_config=True, auto_output="table", default_table=SESSION_TABLE_COLS)
 def session_list(
     config: CliConfig,
     filter_with: Union[SessionFilter, None],
@@ -88,9 +88,7 @@ def session_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(
-            session_list, print_format=config.output, table_cols=SESSION_TABLE_COLS
-        )
+        return session_list
 
     # TODO: Use logger to display this information
     # console.print(f"\n{total} sessions found.")

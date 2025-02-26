@@ -3,7 +3,7 @@ import grpc
 
 import rich_click as click
 
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from pathlib import Path
 from armonik_cli.core.options import GlobalOption
 
@@ -84,6 +84,15 @@ debug_option = click.option(
 )
 
 
+class TableColumnsDescriptor(BaseModel):
+    table: str = Field(
+        description="Name of the command group (session, etc.) and optionally command (session_list) to apply this rule to."
+    )
+    columns: Dict[str, str] = Field(
+        description="Dictionary of column names and their descriptions."
+    )
+
+
 class CliConfig:
     default_path = Path(get_app_dir("armonik_cli")) / "config.yml"
 
@@ -147,6 +156,9 @@ class CliConfig:
             description="Commands output format.",
             cli_option_group="Common",
             cli_option=output_option,
+        )
+        table_columns: List[TableColumnsDescriptor] = Field(
+            default=[], description="List of table columns to be used in the output."
         )
 
     @classmethod
@@ -239,6 +251,19 @@ class CliConfig:
         """
         with open(self.default_path, "w") as f:
             f.write(to_yaml_str(self._config))
+
+    def get_table_columns(
+        self, command_group: str, command: str
+    ) -> Optional[List[Tuple[str, str]]]:
+        """
+        Get the table columns for a given command group/command.
+        """
+        for table_columns in self.table_columns:
+            if table_columns.table == f"{command_group}_{command}":
+                return list(table_columns.columns.items())
+            elif table_columns.table == f"{command_group}":
+                return list(table_columns.columns.items())
+        return None
 
     def get(self, field: str):
         """

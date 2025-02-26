@@ -98,9 +98,15 @@ def populate_option_groups(cli: click.Group) -> None:
     }
 
     for config_field_name, config_field_info in CliConfig.ConfigModel.model_fields.items():
-        if config_field_info.metadata[0].get("cli_option_group", "") == "Common":
+        if (
+            len(config_field_info.metadata) > 0
+            and config_field_info.metadata[0].get("cli_option_group", "") == "Common"
+        ):
             COMMON_OPTIONS_GROUP["options"].append(f"--{config_field_name.replace('_', '-')}")
-        elif config_field_info.metadata[0].get("cli_option_group", "") == "ClusterConnection":
+        elif (
+            len(config_field_info.metadata) > 0
+            and config_field_info.metadata[0].get("cli_option_group", "") == "ClusterConnection"
+        ):
             CLUSTER_CONFIG_OPTIONS_GROUP["options"].append(
                 f"--{config_field_name.replace('_', '-')}"
             )
