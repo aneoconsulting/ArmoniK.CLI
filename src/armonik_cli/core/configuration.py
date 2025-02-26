@@ -3,7 +3,7 @@ import grpc
 
 import rich_click as click
 
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from pathlib import Path
 from armonik_cli.core.options import GlobalOption
 
@@ -47,6 +47,15 @@ def CliField(
     field_info.metadata.append({"cli_option_group": cli_option_group, "cli_option": cli_option})
 
     return field_info
+
+
+class TableColumnsDescriptor(BaseModel):
+    table: str = Field(
+        description="Name of the command group (session, etc.) and optionally command (session_list) to apply this rule to."
+    )
+    columns: Dict[str, str] = Field(
+        description="Dictionary of column names and their descriptions."
+    )
 
 
 class CliConfig:
@@ -139,6 +148,32 @@ class CliConfig:
                 cls=GlobalOption,
             ),
         )
+        table_columns: List[TableColumnsDescriptor] = Field(
+            default=[
+                TableColumnsDescriptor(
+                    table="session",
+                    columns={"ID": "SessionId", "Status": "Status", "CreatedAt": "CreatedAt"},
+                ),
+                TableColumnsDescriptor(
+                    table="result",
+                    columns={
+                        "Name": "Name",
+                        "ID": "ResultId",
+                        "Status": "Status",
+                        "CreatedAt": "CreatedAt",
+                    },
+                ),
+                TableColumnsDescriptor(
+                    table="partition",
+                    columns={"ID": "Id", "PodReserved": "PodReserved", "PodMax": "PodMax"},
+                ),
+                TableColumnsDescriptor(
+                    table="task",
+                    columns={"ID": "Id", "Status": "Status", "CreatedAt": "CreatedAt"},
+                ),
+            ],
+            description="List of table columns to be used in the output.",
+        )
 
     @classmethod
     def from_file(cls, config_path: Path) -> "CliConfig":
@@ -230,6 +265,19 @@ class CliConfig:
         """
         with open(self.default_path, "w") as f:
             f.write(to_yaml_str(self._config))
+
+    def get_table_columns(
+        self, command_group: str, command: str
+    ) -> Optional[List[Tuple[str, str]]]:
+        """
+        Get the table columns for a given command group/command.
+        """
+        for table_columns in self.table_columns:
+            if table_columns.table == f"{command_group}_{command}":
+                return list(table_columns.columns.items())
+            elif table_columns.table == f"{command_group}":
+                return list(table_columns.columns.items())
+        return None
 
     def get(self, field: str):
         """

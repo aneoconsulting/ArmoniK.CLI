@@ -15,14 +15,6 @@ from armonik_cli.core.options import MutuallyExclusiveOption
 from armonik_cli.core.params import FieldParam, FilterParam, ResultNameDataParam
 
 
-RESULT_TABLE_COLS = [
-    ("Name", "Name"),
-    ("ID", "ResultId"),
-    ("Status", "Status"),
-    ("CreatedAt", "CreatedAt"),
-]  # These should be configurable (through Config)
-
-
 @click.group(name="result")
 @base_group
 def results() -> None:
@@ -89,13 +81,13 @@ def result_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(results, print_format=config.output, table_cols=RESULT_TABLE_COLS)
+        return results
 
 
 @results.command(name="get")
 @click.argument("result-ids", type=str, nargs=-1, required=True)
 @base_command(pass_config=True, auto_output="table")
-def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> None:
+def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[List[Result]]:
     """Get details about multiple results given their RESULT_IDs."""
     with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
@@ -103,7 +95,7 @@ def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> None:
         for result_id in result_ids:
             result = results_client.get_result(result_id)
             results.append(result)
-        console.formatted_print(results, print_format=config.output, table_cols=RESULT_TABLE_COLS)
+        return results
 
 
 @results.command(name="create")
@@ -128,7 +120,7 @@ def result_create(
     result_definitions: List[ResultNameDataParam.ParamType],
     session_id: str,
     **kwargs,
-) -> None:
+) -> Optional[List[Result]]:
     """Create result objects in a session with id SESSION_ID."""
     results_with_data = dict()
     metadata_only = []
@@ -156,9 +148,7 @@ def result_create(
                 results_data=results_with_data, session_id=session_id
             )
             created_results += created_results_data.values()
-        console.formatted_print(
-            created_results, print_format=config.output, table_cols=RESULT_TABLE_COLS
-        )
+        return created_results
 
 
 @results.command(name="download-data")

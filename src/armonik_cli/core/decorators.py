@@ -4,7 +4,7 @@ import grpc
 import rich_click as click
 
 from functools import wraps, partial
-from typing import Callable, Optional, Any
+from typing import Callable, List, Optional, Any, Tuple
 from typing_extensions import TypeAlias
 
 from armonik_cli.core.configuration import CliConfig
@@ -102,7 +102,11 @@ def global_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
         )
     ]
     for _, field_info in CliConfig.ConfigModel.model_fields.items():
-        if field_info.metadata[0]["cli_option"]:
+        if (
+            len(field_info.metadata) > 0
+            and "cli_option" in field_info.metadata[0]
+            and field_info.metadata[0]["cli_option"]
+        ):
             generated_click_options.append(field_info.metadata[0]["cli_option"])
     return apply_click_params(command, *generated_click_options)
 
@@ -181,6 +185,7 @@ def base_command(
     *,
     pass_config: bool = False,
     auto_output: Optional[str] = None,
+    default_table: Optional[List[Tuple[str, str]]] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to add global cluster configuration, common options, and error handling
@@ -195,7 +200,12 @@ def base_command(
         Callable: A decorator that wraps the function with CLI options and error handling.
     """
     if func is None:
-        return partial(base_command, pass_config=pass_config, auto_output=auto_output)
+        return partial(
+            base_command,
+            pass_config=pass_config,
+            auto_output=auto_output,
+            default_table=default_table,
+        )
 
     @error_handler
     @inject_config
@@ -208,6 +218,15 @@ def base_command(
         if not pass_config:
             kwargs.pop("config", None)
             kwargs.pop("additional_config", None)
-        return func(*args, **kwargs)
+        command_out = func(*args, **kwargs)
+        if command_out:
+            command_group, command_name, *_ = func.__name__.split("_", 2)
+            console.formatted_print(
+                command_out,
+                print_format=kwargs["config"].output,
+                table_cols=table_cols
+                if (table_cols := kwargs["config"].get_table_columns(command_group, command_name))
+                else default_table,
+            )
 
     return wrapper

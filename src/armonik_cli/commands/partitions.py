@@ -1,16 +1,14 @@
 import rich_click as click
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 from armonik.client.partitions import ArmoniKPartitions
 from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
-from armonik_cli.core import console, base_command, base_group
+from armonik_cli.core import base_command, base_group
 from armonik_cli.core.params import FilterParam, FieldParam
 from armonik_cli.core.configuration import CliConfig, create_grpc_channel
-
-PARTITIONS_TABLE_COLS = [("ID", "Id"), ("PodReserved", "PodReserved"), ("PodMax", "PodMax")]
 
 
 @click.group(name="partition")
@@ -56,7 +54,7 @@ def partition_list(
     page: int,
     page_size: int,
     **kwargs,
-) -> None:
+) -> Optional[List[Partition]]:
     """List the partitions in an ArmoniK cluster."""
     with create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
@@ -78,15 +76,16 @@ def partition_list(
             curr_page += 1
 
         if total > 0:
-            console.formatted_print(
-                partitions_list, print_format=config.output, table_cols=PARTITIONS_TABLE_COLS
-            )
+            return partitions_list
+        return None
 
 
 @partitions.command(name="get")
 @click.argument("partition-ids", type=str, nargs=-1, required=True)
 @base_command(pass_config=True, auto_output="json")
-def partition_get(config: CliConfig, partition_ids: List[str], **kwargs) -> None:
+def partition_get(
+    config: CliConfig, partition_ids: List[str], **kwargs
+) -> Optional[List[Partition]]:
     """Get a specific partition from an ArmoniK cluster given a <PARTITION-ID>."""
     with create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
@@ -94,6 +93,4 @@ def partition_get(config: CliConfig, partition_ids: List[str], **kwargs) -> None
         for partition_id in partition_ids:
             partition = partitions_client.get_partition(partition_id)
             partitions.append(partition)
-        console.formatted_print(
-            partitions, print_format=config.output, table_cols=PARTITIONS_TABLE_COLS
-        )
+        return partitions
