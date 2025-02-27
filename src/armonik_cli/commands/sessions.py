@@ -1,3 +1,4 @@
+import logging
 import grpc
 import rich_click as click
 
@@ -9,7 +10,6 @@ from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
 from armonik_cli.core import (
-    console,
     base_command,
     KeyValuePairParam,
     TimeDeltaParam,
@@ -22,7 +22,7 @@ from armonik_cli.core.params import FieldParam
 
 @click.group(name="session")
 @base_group
-def sessions() -> None:
+def sessions(**kwargs) -> None:
     """Manage cluster sessions."""
     pass
 
@@ -87,9 +87,6 @@ def session_list(
     if total > 0:
         return session_list
     return None
-
-    # TODO: Use logger to display this information
-    # console.print(f"\n{total} sessions found.")
 
 
 @sessions.command(name="get")
@@ -226,7 +223,12 @@ def session_create(
 @click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command(pass_config=True, auto_output="json")
 def session_cancel(
-    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
+    config: CliConfig,
+    session_ids: List[str],
+    logger: logging.Logger,
+    confirm: bool,
+    skip_not_found: bool,
+    **kwargs,
 ) -> Optional[List[Session]]:
     """Cancel sessions."""
     with create_grpc_channel(config) as channel:
@@ -242,7 +244,7 @@ def session_cancel(
                     cancelled_sessions.append(session)
                 except grpc.RpcError as e:
                     if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        logger.warning("Couldn't find session with id=%s, skipping...", session_id)
                         continue
                     else:
                         raise e
@@ -292,6 +294,7 @@ def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> Optio
 @base_command(pass_config=True, auto_output="json")
 def session_close(
     config: CliConfig,
+    logger: logging.Logger,
     session_ids: List[str],
     confirm: bool,
     skip_not_found: bool,
@@ -311,7 +314,7 @@ def session_close(
                     closed_sessions.append(session)
                 except grpc.RpcError as e:
                     if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        logger.warning("Couldn't find session with id=%s, skipping...", session_id)
                         continue
                     else:
                         raise e
@@ -332,7 +335,12 @@ def session_close(
 @click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command(pass_config=True, auto_output="json")
 def session_purge(
-    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
+    config: CliConfig,
+    logger: logging.Logger,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    **kwargs,
 ) -> Optional[List[Session]]:
     """Purge sessions."""
     with create_grpc_channel(config) as channel:
@@ -348,7 +356,7 @@ def session_purge(
                     purged_sessions.append(session)
                 except grpc.RpcError as e:
                     if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        logger.warning("Couldn't find session with id=%s, skipping...", session_id)
                         continue
                     else:
                         raise e
@@ -370,7 +378,12 @@ def session_purge(
 @click.argument("session-ids", required=True, type=str, nargs=-1)
 @base_command(pass_config=True, auto_output="json")
 def session_delete(
-    config: CliConfig, session_ids: List[str], confirm: bool, skip_not_found: bool, **kwargs
+    config: CliConfig,
+    logger: logging.Logger,
+    session_ids: List[str],
+    confirm: bool,
+    skip_not_found: bool,
+    **kwargs,
 ) -> Optional[List[Session]]:
     """Delete sessions and their associated tasks from the cluster."""
     with create_grpc_channel(config) as channel:
@@ -386,7 +399,7 @@ def session_delete(
                     deleted_sessions.append(session)
                 except grpc.RpcError as e:
                     if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        logger.warning("Couldn't find session with id=%s, skipping...", session_id)
                         continue
                     else:
                         raise e
@@ -420,6 +433,7 @@ def session_delete(
 @base_command(pass_config=True, auto_output="json")
 def session_stop_submission(
     config: CliConfig,
+    logger: logging.Logger,
     session_ids: str,
     confirm: bool,
     clients: bool,
@@ -448,7 +462,7 @@ def session_stop_submission(
                     submission_blocked_sessions.append(session)
                 except grpc.RpcError as e:
                     if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                        console.print(f"Couldn't find session with id={session_id}, skipping...")
+                        logger.warning("Couldn't find session with id=%s, skipping...", session_id)
                         continue
                     else:
                         raise e

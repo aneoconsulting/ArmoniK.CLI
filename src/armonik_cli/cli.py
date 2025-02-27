@@ -11,7 +11,7 @@ from armonik_cli.core.common import populate_option_groups
 )
 @click.version_option(version=__version__, prog_name="armonik")
 @base_group
-def cli() -> None:
+def cli(**kwargs) -> None:
     """
     ArmoniK CLI is a tool to monitor and manage ArmoniK clusters.
     """

@@ -1,8 +1,10 @@
 import json
+import logging
 
 from typing import Any, Dict, Optional, Union
 
 from click.testing import CliRunner, Result
+import pytest
 
 from armonik_cli.cli import cli
 
@@ -39,3 +41,11 @@ def reformat_cmd_output(
     if deserialize:
         return json.loads(output)
     return output
+
+
+@pytest.fixture(autouse=True)
+def disable_logging():
+    """Disable all logging for tests."""
+    logging.disable(logging.CRITICAL)  # This disables all logs below CRITICAL level
+    yield
+    logging.disable(logging.NOTSET)  # Re-enable logging after the test

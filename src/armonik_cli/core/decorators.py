@@ -11,6 +11,7 @@ from armonik_cli.core.configuration import CliConfig
 from armonik_cli.core.console import console
 
 from armonik_cli.core.options import GlobalOption
+from armonik_cli.core.logging import get_logger
 from armonik_cli.exceptions import (
     InternalCliError,
     InternalArmoniKError,
@@ -135,6 +136,7 @@ def inject_config(func: Optional[Callable[..., Any]] = None) -> Callable[..., An
                 for key, value in x.items()
                 if ctx.get_parameter_source(key)
                 not in [ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP]
+                or key in ctx.obj
             }
 
         final_config = CliConfig()
@@ -166,15 +168,16 @@ def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
         return partial(base_group)
 
     @global_config_options
+    @click.pass_context
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        # I need to strip args of all of the CliConfig arguments
-        non_used_positional_args = ["config", "additional_config"] + [
-            field for field in CliConfig.ConfigModel.model_fields.keys()
-        ]
-        for arg in non_used_positional_args:
-            if arg in kwargs:
-                del kwargs[arg]
+    def wrapper(ctx, *args: Any, **kwargs: Any) -> Any:
+        if not isinstance(ctx.obj, list):
+            ctx.obj = []
+        for param in kwargs.keys():
+            if ctx.get_parameter_source(param) not in [
+                ParameterSource.DEFAULT or ParameterSource.DEFAULT_MAP
+            ]:
+                ctx.obj.append(param)
         return func(*args, **kwargs)
 
     return wrapper
@@ -218,6 +221,12 @@ def base_command(
         if not pass_config:
             kwargs.pop("config", None)
             kwargs.pop("additional_config", None)
+        kwargs["logger"] = get_logger(
+            "armonik_cli", debug=kwargs["config"].debug, verbose=kwargs["config"].verbose
+        )
+        kwargs["logger"].debug(f"Executing command: {func.__name__}")
+        kwargs["logger"].debug(f"Config: {kwargs['config']}")
+        kwargs["logger"].debug(f"Arguments: {kwargs}")
         command_out = func(*args, **kwargs)
         if command_out:
             command_group, command_name, *_ = func.__name__.split("_", 2)

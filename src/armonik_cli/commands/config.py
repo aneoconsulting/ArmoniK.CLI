@@ -11,7 +11,7 @@ from armonik_cli.utils import pretty_type
 
 @click.group(name="config")
 @base_group
-def config() -> None:
+def config(**kwargs) -> None:
     """Manage CLI configuration."""
     pass
 

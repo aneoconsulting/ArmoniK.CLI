@@ -390,4 +390,4 @@ def test_result_download_data(mocker):
     run_cmd_and_assert_exit_code(cmd, split=False)
 
     ArmoniKResults.download_result_data.assert_called_once_with("result-id", "session-id")
-    open.assert_called_once_with(pathlib.PosixPath("output/result-id_session-id.txt"), "wb")
+    open.assert_called_with(pathlib.PosixPath("output/result-id_session-id.txt"), "wb")
