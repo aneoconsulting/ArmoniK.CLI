@@ -10,6 +10,7 @@ from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
 from armonik_cli.core import console, base_command, base_group
+from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 from armonik_cli.core.options import MutuallyExclusiveOption
 from armonik_cli.core.params import FieldParam, FilterParam, ResultNameDataParam
 
@@ -56,19 +57,18 @@ def results() -> None:
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def result_list(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     filter_with: Union[PartitionFilter, None],
     sort_by: Filter,
     sort_direction: str,
     page: int,
     page_size: int,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """List the results of an ArmoniK cluster given <SESSION-ID>."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         curr_page = page if page > 0 else 0
         results_list = []
@@ -89,21 +89,21 @@ def result_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(results, print_format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(results, print_format=config.output, table_cols=RESULT_TABLE_COLS)
 
 
 @results.command(name="get")
 @click.argument("result-ids", type=str, nargs=-1, required=True)
-@base_command
-def result_get(endpoint: str, output: str, result_ids: List[str], debug: bool) -> None:
+@base_command(pass_config=True, auto_output="table")
+def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> None:
     """Get details about multiple results given their RESULT_IDs."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         results = []
         for result_id in result_ids:
             result = results_client.get_result(result_id)
             results.append(result)
-        console.formatted_print(results, print_format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(results, print_format=config.output, table_cols=RESULT_TABLE_COLS)
 
 
 @results.command(name="create")
@@ -122,13 +122,12 @@ def result_get(endpoint: str, output: str, result_ids: List[str], debug: bool) -
         "3. --result '<result_name> file <filepath>' (data is provided from a file)."
     ),
 )
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def result_create(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     result_definitions: List[ResultNameDataParam.ParamType],
     session_id: str,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Create result objects in a session with id SESSION_ID."""
     results_with_data = dict()
@@ -142,7 +141,7 @@ def result_create(
         elif res.type == "nodata":
             metadata_only.append(res.name)
 
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         # Create metadata-only results
         created_results = []
@@ -157,7 +156,9 @@ def result_create(
                 results_data=results_with_data, session_id=session_id
             )
             created_results += created_results_data.values()
-        console.formatted_print(created_results, print_format=output, table_cols=RESULT_TABLE_COLS)
+        console.formatted_print(
+            created_results, print_format=config.output, table_cols=RESULT_TABLE_COLS
+        )
 
 
 @results.command(name="download-data")
@@ -199,20 +200,19 @@ def result_create(
     is_flag=True,
     help="Skips results that haven't been found when trying to download them.",
 )
-@base_command
+@base_command(pass_config=True, auto_output="table")
 def results_download_data(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     session_id: str,
     result_ids: List[str],
     download_path: pathlib.Path,
     suffix: str,
     std_out: Optional[bool],
     skip_not_found: bool,
-    debug: bool,
+    **kwargs,
 ):
     """Download a list of results from your cluster."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         downloaded_results = []
         for result_id in result_ids:
@@ -236,7 +236,7 @@ def results_download_data(
             downloaded_results.append(downloaded_result_obj)
         console.formatted_print(
             downloaded_result_obj,
-            print_format=output,
+            print_format=config.output,
             table_cols=downloaded_result_table,
         )
 
@@ -254,18 +254,17 @@ def results_download_data(
     mutual=["from_bytes"],
     require_one=True,
 )
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def result_upload_data(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     session_id: str,
     result_id: Union[str, None],
     from_bytes: Union[str, None],
     from_file: IO[bytes],
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Upload data for a result separately"""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         if from_bytes:
             result_data = bytes(from_bytes, encoding="utf-8")
@@ -287,17 +286,16 @@ def result_upload_data(
     is_flag=True,
     help="Skips results that haven't been found when trying to delete them.",
 )
-@base_command
+@base_command(pass_config=True, auto_output="json")
 def result_delete_data(
-    endpoint: str,
-    output: str,
+    config: CliConfig,
     result_ids: List[str],
     confirm: bool,
     skip_not_found: bool,
-    debug: bool,
+    **kwargs,
 ) -> None:
     """Delete the data of multiple results given their RESULT_IDs."""
-    with grpc.insecure_channel(endpoint) as channel:
+    with create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         session_result_mapping = defaultdict(list)
         for result_id in result_ids:

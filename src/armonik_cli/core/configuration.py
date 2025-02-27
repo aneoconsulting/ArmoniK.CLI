@@ -1,10 +1,13 @@
 import yaml
+import grpc
 
 import rich_click as click
 
 from typing import Any, Callable, Literal, Optional
 from pathlib import Path
 from armonik_cli.core.options import GlobalOption
+
+from armonik.common.channel import create_channel
 
 from click import get_app_dir
 from pydantic import BaseModel, Field
@@ -46,41 +49,6 @@ def CliField(
     return field_info
 
 
-endpoint_option = click.option(
-    "-e",
-    "--endpoint",
-    type=str,
-    help="Endpoint of the cluster to connect to.",
-    metavar="ENDPOINT",
-    envvar="AK_ENDPOINT",
-    cls=GlobalOption,
-)
-
-
-output_option = click.option(
-    "-o",
-    "--output",
-    type=click.Choice(["yaml", "json", "table", "auto"], case_sensitive=False),
-    default="auto",
-    show_default=True,
-    help="Commands output format.",
-    metavar="FORMAT",
-    envvar="AK_OUTPUT",
-    cls=GlobalOption,
-)
-
-
-debug_option = click.option(
-    "--debug/--no-debug",
-    is_flag=True,
-    default=False,
-    help="Print debug logs and internal errors.",
-    show_default=True,
-    envvar="AK_DEBUG",
-    cls=GlobalOption,
-)
-
-
 class CliConfig:
     default_path = Path(get_app_dir("armonik_cli")) / "config.yml"
 
@@ -88,19 +56,88 @@ class CliConfig:
         endpoint: Optional[str] = CliField(
             description="ArmoniK gRPC endpoint to connect to.",
             cli_option_group="ClusterConnection",
-            cli_option=endpoint_option,
+            cli_option=click.option(
+                "-e",
+                "--endpoint",
+                type=str,
+                help="Endpoint of the cluster to connect to.",
+                metavar="ENDPOINT",
+                envvar="AK_ENDPOINT",
+                cls=GlobalOption,
+            ),
         )
+
+        certificate_authority: Optional[Path] = CliField(
+            description="Path to the certificate authority file.",
+            cli_option_group="ClusterConnection",
+            default=None,
+            cli_option=click.option(
+                "--certificate-authority",
+                type=click.Path(exists=True, dir_okay=False),
+                help="Path to the certificate authority file.",
+                required=False,
+                metavar="CA_FILE",
+                cls=GlobalOption,
+            ),
+        )
+
+        client_certificate: Optional[Path] = CliField(
+            description="Path to the client certificate file.",
+            cli_option_group="ClusterConnection",
+            default=None,
+            cli_option=click.option(
+                "--client-certificate",
+                type=click.Path(exists=True, dir_okay=False),
+                help="Path to the client certificate file.",
+                required=False,
+                metavar="CERT_FILE",
+                cls=GlobalOption,
+            ),
+        )
+
+        client_key: Optional[Path] = CliField(
+            description="Path to the client key file.",
+            cli_option_group="ClusterConnection",
+            default=None,
+            cli_option=click.option(
+                "--client-key",
+                type=click.Path(exists=True, dir_okay=False),
+                required=False,
+                help="Path to the client key file.",
+                metavar="KEY_FILE",
+                cls=GlobalOption,
+            ),
+        )
+
         debug: bool = CliField(
             default=False,
             description="Whether to print the stack trace of internal errors.",
             cli_option_group="Common",
-            cli_option=debug_option,
+            cli_option=click.option(
+                "--debug/--no-debug",
+                is_flag=True,
+                default=False,
+                help="Print debug logs and internal errors.",
+                show_default=True,
+                envvar="AK_DEBUG",
+                cls=GlobalOption,
+            ),
         )
         output: Literal["json", "yaml", "table", "auto"] = CliField(
             default="auto",
             description="Commands output format.",
             cli_option_group="Common",
-            cli_option=output_option,
+            cli_option=click.option(
+                "-o",
+                "--output",
+                type=click.Choice(["yaml", "json", "table", "auto"], case_sensitive=False),
+                default="auto",
+                show_default=True,
+                help="Commands output format.",
+                metavar="FORMAT",
+                envvar="AK_OUTPUT",
+                cls=GlobalOption,
+            ),
         )
 
     @classmethod
@@ -242,3 +279,21 @@ class CliConfig:
         """
         validated_model = self.ConfigModel.model_validate(self._config.__dict__)
         self._config = validated_model
+
+
+def create_grpc_channel(config: CliConfig) -> grpc.Channel:
+    """
+    Create a gRPC channel based on the configuration.
+    """
+    if config.certificate_authority and config.client_certificate and config.client_key:
+        # Create grpc channel with tls
+        channel = create_channel(
+            config.endpoint,
+            certificate_authority=config.certificate_authority,
+            client_certificate=config.client_certificate,
+            client_key=config.client_key,
+        )
+    else:
+        # Create insecure grpc channel
+        channel = grpc.insecure_channel(config.endpoint)
+    return channel

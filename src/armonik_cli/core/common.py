@@ -2,7 +2,7 @@ import rich_click as click
 
 from typing import Callable, Any, Dict, List, Union
 from typing_extensions import TypeAlias
-from armonik_cli.core.configuration import endpoint_option, output_option, debug_option, CliConfig
+from armonik_cli.core.configuration import CliConfig
 
 from rich_click.utils import OptionGroupDict
 
@@ -26,32 +26,6 @@ def apply_click_params(
     for click_option in click_options:
         command = click_option(command)
     return command
-
-
-def global_cluster_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Adds global cluster configuration options to a Click command.
-
-    Args:
-        command: The Click command function to decorate.
-
-    Returns:
-        The decorated command function.
-    """
-    return apply_click_params(command, endpoint_option)
-
-
-def global_common_options(command: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Adds global common options such as output format and debug mode to a Click command.
-
-    Args:
-        command: The Click command function to decorate.
-
-    Returns:
-        The decorated command function.
-    """
-    return apply_click_params(command, output_option, debug_option)
 
 
 def get_command_paths_with_options(
