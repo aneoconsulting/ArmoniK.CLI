@@ -1,7 +1,7 @@
 import rich_click as click
 
 from datetime import timedelta
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from armonik.client.tasks import ArmoniKTasks
 from armonik.common import Task, TaskDefinition, TaskOptions, Direction
@@ -10,8 +10,6 @@ from armonik.common.filter import TaskFilter, Filter
 from armonik_cli.core import console, base_command, base_group
 from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
-
-TASKS_TABLE_COLS = [("ID", "Id"), ("Status", "Status"), ("CreatedAt", "CreatedAt")]
 
 
 @click.group(name="task")
@@ -46,7 +44,7 @@ def tasks() -> None:
 )
 @click.option("--page-size", default=100, help="Number of elements in each page")
 @base_command(pass_config=True, auto_output="table")
-def tasks_list(
+def task_list(
     config: CliConfig,
     filter_with: Union[TaskFilter, None],
     sort_by: Filter,
@@ -54,7 +52,7 @@ def tasks_list(
     page: int,
     page_size: int,
     **kwargs,
-) -> None:
+) -> Optional[List[Task]]:
     "List all tasks."
     with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
@@ -77,13 +75,14 @@ def tasks_list(
             curr_page += 1
 
     if total > 0:
-        console.formatted_print(tasks_list, print_format=config.output, table_cols=TASKS_TABLE_COLS)
+        return tasks_list
+    return None
 
 
 @tasks.command(name="get")
 @click.argument("task-ids", type=str, nargs=-1, required=True)
 @base_command(pass_config=True, auto_output="table")
-def tasks_get(config: CliConfig, task_ids: List[str], **kwargs):
+def task_get(config: CliConfig, task_ids: List[str], **kwargs):
     """Get a detailed overview of set of tasks given their ids."""
     with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
@@ -91,13 +90,13 @@ def tasks_get(config: CliConfig, task_ids: List[str], **kwargs):
         for task_id in task_ids:
             task = tasks_client.get_task(task_id)
             tasks.append(task)
-        console.formatted_print(tasks, print_format=config.output, table_cols=TASKS_TABLE_COLS)
+        return tasks
 
 
 @tasks.command(name="cancel")
 @click.argument("task-ids", type=str, nargs=-1, required=True)
 @base_command(pass_config=True, auto_output="json")
-def tasks_cancel(config: CliConfig, task_ids: List[str], **kwargs):
+def task_cancel(config: CliConfig, task_ids: List[str], **kwargs):
     "Cancel tasks given their ids. (They don't have to be in the same session necessarily)."
     with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
@@ -191,7 +190,7 @@ def tasks_cancel(config: CliConfig, task_ids: List[str], **kwargs):
     metavar="KEY=VALUE",
 )
 @base_command(pass_config=True, auto_output="table")
-def tasks_create(
+def task_create(
     config: CliConfig,
     session_id: str,
     payload_id: str,
@@ -208,7 +207,7 @@ def tasks_create(
     engine_type: Union[str, None],
     options: Union[List[Tuple[str, str]], None],
     **kwargs,
-):
+) -> Optional[Task]:
     """Create a task."""
     with create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
@@ -241,8 +240,4 @@ def tasks_create(
         )
         submitted_tasks = tasks_client.submit_tasks(session_id, [task_definition])
 
-        console.formatted_print(
-            submitted_tasks[0],
-            print_format=config.output,
-            table_cols=TASKS_TABLE_COLS,
-        )
+        return submitted_tasks[0]
