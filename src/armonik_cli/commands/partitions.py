@@ -13,7 +13,7 @@ from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 
 @click.group(name="partition")
 @base_group
-def partitions() -> None:
+def partitions(**kwargs) -> None:
     """Manage cluster partitions."""
     pass
 

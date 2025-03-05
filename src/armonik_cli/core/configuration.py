@@ -132,6 +132,22 @@ class CliConfig:
                 cls=GlobalOption,
             ),
         )
+
+        verbose: bool = CliField(
+            default=False,
+            description="Whether or not to log info.",
+            cli_option_group="Common",
+            cli_option=click.option(
+                "--verbose/--no-verbose",
+                is_flag=True,
+                default=False,
+                help="Whether or not to log info.",
+                show_default=True,
+                envvar="AK_VERBOSE",
+                cls=GlobalOption,
+            ),
+        )
+
         output: Literal["json", "yaml", "table", "auto"] = CliField(
             default="auto",
             description="Commands output format.",

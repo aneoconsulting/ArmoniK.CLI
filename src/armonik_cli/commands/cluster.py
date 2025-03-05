@@ -13,7 +13,7 @@ from armonik_cli.core.configuration import CliConfig, create_grpc_channel
 
 @click.group(name="cluster")
 @base_group
-def cluster() -> None:
+def cluster(**kwargs) -> None:
     """Manage ArmoniK cluster."""
     pass
 

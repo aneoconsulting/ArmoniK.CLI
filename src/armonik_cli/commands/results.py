@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 import pathlib
 import grpc
 import rich_click as click
@@ -17,7 +18,7 @@ from armonik_cli.core.params import FieldParam, FilterParam, ResultNameDataParam
 
 @click.group(name="result")
 @base_group
-def results() -> None:
+def results(**kwargs) -> None:
     """Manage results."""
     pass
 
@@ -279,6 +280,7 @@ def result_upload_data(
 @base_command(pass_config=True, auto_output="json")
 def result_delete_data(
     config: CliConfig,
+    logger: logging.Logger,
     result_ids: List[str],
     confirm: bool,
     skip_not_found: bool,
@@ -293,7 +295,7 @@ def result_delete_data(
                 result = results_client.get_result(result_id)
             except grpc.RpcError as e:
                 if skip_not_found and e.code() == grpc.StatusCode.NOT_FOUND:
-                    console.print(f"Couldn't find result with id={result_id}, skipping...")
+                    logger.warning("Couldn't find result with id=%s, skipping...", result_id)
                     continue
                 else:
                     raise e

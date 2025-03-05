@@ -14,7 +14,7 @@ from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterPar
 
 @click.group(name="task")
 @base_group
-def tasks() -> None:
+def tasks(**kwargs) -> None:
     """Manage cluster's tasks."""
     pass
 
