@@ -25,10 +25,10 @@ def get_local_schema(version: ScmVersion) -> str:
         The custom local version string.
     """
     run_id = environ.get("GITHUB_RUN_ID", "0")
-    release = environ.get("RELEASE", "")
-    if not release:
-        return f".dev{run_id}"
-    return ""
+    event_name = environ.get("GITHUB_EVENT_NAME", "")
+    if event_name == "release":
+        return ""
+    return f".dev{run_id}"
 
 
 setup(
