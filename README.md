@@ -1,16 +1,16 @@
-# ArmoniK Admin CLI
+# ArmoniK CLI
 
 <div align="center">
 
-<!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
-[![Latest Release](https://img.shields.io/github/v/release/aneoconsulting/ArmoniK.Admin.CLI)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/releases)
-[![License](https://img.shields.io/github/license/aneoconsulting/ArmoniK.Admin.CLI?label=License&color=blue)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/docs/index.rst)
+<!-- TODO: Fix documentation link to point to the ReadTheDocs page (again). -->
+[![Latest Release](https://img.shields.io/github/v/release/aneoconsulting/ArmoniK.CLI)](https://github.com/aneoconsulting/ArmoniK.CLI/releases)
+[![License](https://img.shields.io/github/license/aneoconsulting/ArmoniK.CLI?label=License&color=blue)](https://github.com/aneoconsulting/ArmoniK.CLI/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://armonikadmincli.readthedocs.io/en/latest/)
 
 Command-line interface for monitoring and managing [ArmoniK](https://github.com/aneoconsulting/ArmoniK) clusters.
 
-<!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
-[Documentation](https://github.com/aneoconsulting/ArmoniK.Admin.CLI/blob/main/docs/index.rst) •
+<!-- TODO: Fix documentation link to point to the ReadTheDocs page (again). -->
+[Documentation](https://armonikadmincli.readthedocs.io/en/latest/) •
 [Getting Started](#getting-started) •
 [Contributing](#contributing)
 
@@ -74,8 +74,8 @@ armonik --version
 #### From source
 
 ```bash
-git clone https://github.com/aneoconsulting/ArmoniK.Admin.CLI.git
-cd ArmoniK.Admin.CLI
+git clone https://github.com/aneoconsulting/ArmoniK.CLI.git
+cd ArmoniK.CLI
 pip install -e .
 ```
 
@@ -109,6 +109,8 @@ armonik --endpoint <cluster-endpoint> cluster info
 
 There exists additional options to connect to clusters that use TLS. In addition, to simplify the usage of the CLI, you can set the default values for the `--endpoint` and the others connection options using a configuration file.
 
+You don't need to specify the endpoint if you exported the AKCONFIG variable when prompted to when deploying an ArmoniK cluster, because that environment variable points to a pre-filled configuration.
+
 To list available commands and options, you can use the `--help` or `-h` option:
 
 ```bash
@@ -120,7 +122,7 @@ To learn more about the CLI, please refer to the documentation.
 ## Documentation
 
 <!-- TODO: Fix documentation link to point to the ReadTheDocs page. -->
-The full documentation is available on [ReadTheDocs](https://armonik-cli.readthedocs.io/en/latest/). Otherwise, you can build and view the documentation locally by running:
+The full documentation is available on [ReadTheDocs](https://armonikadmincli.readthedocs.io/en/latest/). Otherwise, you can build and view the documentation locally by running:
 
 ```bash
 pip install -e .[docs]
