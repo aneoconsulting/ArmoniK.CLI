@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: Internet",
 ]
 dependencies = [
-    "armonik",
+    "armonik>=3.25.0",
     "click",
     "lark",
     "PyYAML",
