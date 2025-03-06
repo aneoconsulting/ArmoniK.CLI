@@ -99,6 +99,7 @@ def global_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
             type=click.Path(exists=True, dir_okay=False),
             required=False,
             help="Path to additional config file.",
+            envvar="AKCONFIG",
             cls=GlobalOption,
         )
     ]
