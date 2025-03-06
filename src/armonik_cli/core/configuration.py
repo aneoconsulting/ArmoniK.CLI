@@ -349,10 +349,15 @@ def create_grpc_channel(config: CliConfig) -> grpc.Channel:
     """
     Create a gRPC channel based on the configuration.
     """
+    cleaner_endpoint = config.endpoint
+    if cleaner_endpoint.startswith("http://"):
+        cleaner_endpoint = cleaner_endpoint[7:]
+    if cleaner_endpoint.endswith("/"):
+        cleaner_endpoint = cleaner_endpoint[:-1]
     if config.certificate_authority and config.client_certificate and config.client_key:
         # Create grpc channel with tls
         channel = create_channel(
-            config.endpoint,
+            cleaner_endpoint,
             options=(("grpc.ssl_target_name_override", "armonik.local"),),
             certificate_authority=config.certificate_authority,
             client_certificate=config.client_certificate,
@@ -360,5 +365,5 @@ def create_grpc_channel(config: CliConfig) -> grpc.Channel:
         )
     else:
         # Create insecure grpc channel
-        channel = grpc.insecure_channel(config.endpoint)
+        channel = grpc.insecure_channel(cleaner_endpoint)
     return channel
