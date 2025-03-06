@@ -23,14 +23,14 @@ To install the CLI from source, first clone this repository.
 
 .. code-block:: console 
 
-    $ git clone git@github.com/aneoconsulting/ArmoniK.Admin.CLI.git
+    $ git clone git@github.com/aneoconsulting/ArmoniK.CLI.git
 
 
 Navigate in the root directory
 
 .. code-block:: console 
 
-    $ cd ArmoniK.Admin.CLI
+    $ cd ArmoniK.CLI
 
 
 Create and activate the virtual environment
