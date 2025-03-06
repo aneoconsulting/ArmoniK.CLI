@@ -38,7 +38,6 @@ jobs:
           if-no-files-found: error
 
       - name: Publish to PyPiTest
-        # if: github.event_name != 'release' # Skip for actual releases
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
             password: ${{ secrets.DEV_PYPI_CLI_TOKEN }}
@@ -46,10 +45,10 @@ jobs:
             packages-dir: dist/
             repository-url: https://test.pypi.org/legacy/
 
-      # - name: Publish to PyPi
-      #   if: github.event_name == 'release' # Publish on releases
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #       password: ${{ secrets.PYPI_CLI_TOKEN }}
-      #       print-hash: true
-      #       packages-dir: dist/
+      - name: Publish to PyPi
+        if: github.event_name == 'release' # Publish on releases
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+            password: ${{ secrets.PYPI_CLI_TOKEN }}
+            print-hash: true
+            packages-dir: dist/
