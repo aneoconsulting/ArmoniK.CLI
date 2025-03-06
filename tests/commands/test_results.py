@@ -22,6 +22,7 @@ raw_results = [
         completed_at=None,
         result_id="e9cb3a53-e742-4ea5-b66b-8a0f9eb1f49d",
         size=20910,
+        opaque_id="",
     ),
     Result(
         session_id="5f723ff6-56e7-4329-a5d1-5e1f7ba6c7ef",
@@ -33,6 +34,7 @@ raw_results = [
         completed_at=None,
         result_id="cb0c7a4a-d7e7-4bea-bb0e-66c3628f9ac3",
         size=20942,
+        opaque_id="",
     ),
 ]
 
@@ -41,6 +43,7 @@ serialized_results = [
         "SessionId": "5f723ff6-56e7-4329-a5d1-5e1f7ba6c7ef",
         "Name": "",
         "CreatedBy": "37b15f70-cacc-4ffd-8cbd-e5986f7edbb4",
+        "OpaqueId": "",
         "OwnerTaskId": "",
         "Status": "Deleted",
         "CreatedAt": "2025-01-15 00:00:00",
@@ -52,6 +55,7 @@ serialized_results = [
         "SessionId": "5f723ff6-56e7-4329-a5d1-5e1f7ba6c7ef",
         "Name": "",
         "CreatedBy": "37b15f70-cacc-4ffd-8cbd-e5986f7edbb4",
+        "OpaqueId": "",
         "OwnerTaskId": "",
         "Status": "Deleted",
         "CreatedAt": "2025-01-15 00:00:00",
