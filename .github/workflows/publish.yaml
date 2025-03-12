@@ -44,7 +44,6 @@ jobs:
             password: ${{ secrets.PYPI_CLI_TOKEN }}
             print-hash: true
             packages-dir: dist/
-            skip-existing: true
 
       - name: Publish to PyPiTest
         uses: pypa/gh-action-pypi-publish@release/v1
