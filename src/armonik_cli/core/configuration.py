@@ -354,7 +354,7 @@ def create_grpc_channel(config: CliConfig) -> grpc.Channel:
         cleaner_endpoint = cleaner_endpoint[7:]
     if cleaner_endpoint.endswith("/"):
         cleaner_endpoint = cleaner_endpoint[:-1]
-    if config.certificate_authority and config.client_certificate and config.client_key:
+    if config.certificate_authority:
         # Create grpc channel with tls
         channel = create_channel(
             cleaner_endpoint,

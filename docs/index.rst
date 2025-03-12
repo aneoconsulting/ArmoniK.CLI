@@ -17,3 +17,4 @@ This repository is part of the `ArmoniK <https://github.com/aneoconsulting/Armon
 
    development
    armonik_core
+   api/index
