@@ -28,27 +28,29 @@ jobs:
             python -m uv pip install build
 
       - name: Build the CLI
-        run:  python -m build --sdist --wheel
+        run: |
+          git tag
+          python -m build --sdist --wheel
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
-        with:
-          name: armonik_cli
-          path: dist/*
-          if-no-files-found: error
+      # - name: Upload build artifacts
+      #   uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      #   with:
+      #     name: armonik_cli
+      #     path: dist/*
+      #     if-no-files-found: error
 
-      - name: Publish to PyPiTest
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-            password: ${{ secrets.DEV_PYPI_CLI_TOKEN }}
-            print-hash: true
-            packages-dir: dist/
-            repository-url: https://test.pypi.org/legacy/
+      # - name: Publish to PyPiTest
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #       password: ${{ secrets.DEV_PYPI_CLI_TOKEN }}
+      #       print-hash: true
+      #       packages-dir: dist/
+      #       repository-url: https://test.pypi.org/legacy/
 
-      - name: Publish to PyPi
-        if: github.event_name == 'release' # Publish on releases
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-            password: ${{ secrets.PYPI_CLI_TOKEN }}
-            print-hash: true
-            packages-dir: dist/
+      # - name: Publish to PyPi
+      #   if: github.event_name == 'release' # Publish on releases
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #       password: ${{ secrets.PYPI_CLI_TOKEN }}
+      #       print-hash: true
+      #       packages-dir: dist/
