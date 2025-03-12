@@ -68,3 +68,5 @@ docs = [
 
 [project.scripts]
 armonik = "armonik_cli.cli:cli"
+
+[tool.setuptools_scm]
