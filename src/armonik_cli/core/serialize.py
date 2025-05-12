@@ -22,7 +22,7 @@ def to_pascal_case(value: str) -> str:
 
 
 SerializerOutput = Union[
-    int, bool, float, str, None, Dict[str, "SerializerOutput"], List["SerializerOutput"]
+    int, bool, float, str, bytes, None, Dict[str, "SerializerOutput"], List["SerializerOutput"]
 ]
 
 
@@ -48,7 +48,13 @@ def serialize(obj: object) -> SerializerOutput:
     Raises:
         ArmoniKCLIError: If a dict contains non-string keys
     """
-    if isinstance(obj, str) or type(obj) is int or isinstance(obj, float) or isinstance(obj, bool):
+    if (
+        isinstance(obj, str)
+        or type(obj) is int
+        or isinstance(obj, float)
+        or isinstance(obj, bool)
+        or isinstance(obj, bytes)
+    ):
         return obj
     elif isinstance(obj, dict):
         if all(map(lambda key: isinstance(key, str), obj.keys())):
