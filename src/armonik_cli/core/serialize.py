@@ -4,7 +4,6 @@ from enum import IntEnum
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
-
 from armonik_cli.exceptions import ArmoniKCLIError
 
 
@@ -56,12 +55,13 @@ def serialize(obj: object) -> SerializerOutput:
         or isinstance(obj, bytes)
     ):
         return obj
-    elif isinstance(obj, dict):
+    elif hasattr(obj, "keys") and hasattr(obj, "values") and hasattr(obj, "items"):
+        # Handle protobuf map containers and other dict-like objects
         if all(map(lambda key: isinstance(key, str), obj.keys())):
             return {key: serialize(val) for key, val in obj.items()}
         else:
             raise ArmoniKCLIError(
-                "When trying to serialize object, received a dict with a non-string key."
+                "When trying to serialize object, received a dict-like object with a non-string key."
             )
     elif isinstance(obj, timedelta):
         return str(obj)
