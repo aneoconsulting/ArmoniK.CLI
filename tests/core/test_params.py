@@ -8,7 +8,7 @@ from pathlib import Path
 from armonik.common import Partition, Result, Session, Task
 from armonik.common.filter.filter import StringFilter
 
-from armonik_cli.core import (
+from armonik_cli_core import (
     KeyValuePairParam,
     TimeDeltaParam,
     FilterParam,

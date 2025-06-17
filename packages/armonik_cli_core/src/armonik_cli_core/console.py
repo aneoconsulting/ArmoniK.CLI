@@ -6,7 +6,7 @@ from typing import List, Dict, Tuple, Any, Union
 from rich.console import Console
 from rich.table import Table
 
-from armonik_cli.core.serialize import serialize
+from .serialize import serialize
 
 
 class ArmoniKCLIConsole(Console):
