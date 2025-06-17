@@ -1,14 +1,18 @@
 [build-system]
-requires = ["setuptools>=64",
-            "setuptools-scm[toml]>=8",
-            "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
 
 [project]
 name = "armonik_cli"
+dynamic = ["version"]
 description = "Command-line tool to monitor and manage ArmoniK clusters."
 readme = "README.md"
-dynamic = ["version"]
 requires-python = ">=3.8"
 keywords = ["cloud", "HTC", "CLI", "ArmoniK", "Aneo"]
 license = {text = "Apache v2.0 LICENSE"}
@@ -32,21 +36,24 @@ dependencies = [
     "rich_click",
     "typing_extensions",
     "pydantic",
-    "pydantic-yaml"
+    "pydantic-yaml",
+    "armonik_cli_core"
 ]
 
+[tool.uv.sources]
+armonik_cli_core = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "packages/armonik_cli_core",
+]
+
+
 [project.urls]
-"Homepage" = "https://github.com/aneoconsulting/ArmoniK.Api"
-"Bug Tracker" = "https://github.com/aneoconsulting/ArmoniK/issues"
+"Homepage" = "https://github.com/aneoconsulting/ArmoniK.CLI"
+"Bug Tracker" = "https://github.com/aneoconsulting/ArmoniK.CLI/issues"
 
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-where= ["src"]
-exclude=['tests']
-
-[project.optional-dependencies]
+[dependency-groups]
 tests = [
   'coverage',
   'pytest',
@@ -66,7 +73,44 @@ docs = [
     "sphinx-autobuild"
 ]
 
+[tool.uv]
+default-groups = ["dev", "tests", "docs"]
+
 [project.scripts]
 armonik = "armonik_cli.cli:cli"
 
-[tool.setuptools_scm]
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = """
+    --cov=armonik_cli
+    --cov-config=.coveragerc
+    --cov-report=term-missing
+    --cov-append
+    --cov-report xml:coverage.xml
+    --cov-report html:coverage_report
+"""
+
+[tool.mypy]
+python_version = "3.9"
+exclude = [
+    "tests/",
+    "build/"
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "armonik.*",
+    "google.*",
+    "grpc",
+    "setuptools",
+    "setuptools_scm"
+]
+ignore_missing_imports = true

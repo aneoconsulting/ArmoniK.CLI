@@ -3,9 +3,9 @@ import rich_click as click
 
 from rich.table import Table
 
-from armonik_cli.core.configuration import CliConfig
-from armonik_cli.core import base_group, console
-from armonik_cli.core.decorators import base_command
+from armonik_cli_core.configuration import CliConfig
+from armonik_cli_core import base_group, console
+from armonik_cli_core.decorators import base_command
 from armonik_cli.utils import pretty_type
 
 

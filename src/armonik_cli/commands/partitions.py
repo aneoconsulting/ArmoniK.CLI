@@ -6,9 +6,9 @@ from armonik.client.partitions import ArmoniKPartitions
 from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
-from armonik_cli.core import base_command, base_group
-from armonik_cli.core.params import FilterParam, FieldParam
-from armonik_cli.core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core import base_command, base_group
+from armonik_cli_core.params import FilterParam, FieldParam
+from armonik_cli_core.configuration import CliConfig, create_grpc_channel
 
 
 @click.group(name="partition")
