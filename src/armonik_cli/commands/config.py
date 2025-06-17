@@ -22,8 +22,8 @@ def config(**kwargs) -> None:
     type=str,
     required=True,
 )
-@base_command
-def config_get(field: str, **kwargs) -> None:
+@base_command(pass_config=True)
+def config_get(config: CliConfig, field: str, **kwargs) -> None:
     """Get the current CLI configuration."""
     if field in CliConfig.ConfigModel.model_fields.keys():
         console.print(CliConfig().get(field))
@@ -40,8 +40,8 @@ def config_get(field: str, **kwargs) -> None:
     required=True,
 )
 @click.argument("value", type=str, required=True)
-@base_command
-def config_set(field: str, value: str, **kwargs) -> None:
+@base_command(pass_config=True)
+def config_set(config: CliConfig, field: str, value: str, **kwargs) -> None:
     """Set a field in the CLI configuration."""
     if field in CliConfig.ConfigModel.model_fields.keys():
         CliConfig().set(**{field: value})
@@ -53,8 +53,8 @@ def config_set(field: str, value: str, **kwargs) -> None:
 
 
 @config.command(name="show")
-@base_command
-def config_show(output, **kwargs) -> None:
+@base_command(pass_config=True)
+def config_show(config: CliConfig, output, **kwargs) -> None:
     """Show the current CLI configuration."""
     config = CliConfig()
     config_dump = config._config.model_dump()
@@ -71,8 +71,8 @@ def config_show(output, **kwargs) -> None:
 
 
 @config.command(name="list")
-@base_command
-def config_list(output, **kwargs) -> None:
+@base_command(pass_config=True)
+def config_list(config: CliConfig, output, **kwargs) -> None:
     """List all available configuration fields."""
     if output == "table":
         # Decided to do it like this so I can have different tables per field group (refactor will include grouping for yamls too)
