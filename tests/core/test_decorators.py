@@ -2,7 +2,7 @@ import pytest
 
 from grpc import RpcError, StatusCode
 
-from armonik_cli.core.decorators import error_handler
+from armonik_cli_core.decorators import error_handler
 from armonik_cli.exceptions import InternalArmoniKError, InternalCliError
 
 

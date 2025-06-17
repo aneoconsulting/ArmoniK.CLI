@@ -2,7 +2,7 @@ import pytest
 import rich_click as click
 
 from click.testing import CliRunner
-from armonik_cli.core.options import MutuallyExclusiveOption, GlobalOption
+from armonik_cli_core.options import MutuallyExclusiveOption, GlobalOption
 
 
 @pytest.fixture(scope="module")
