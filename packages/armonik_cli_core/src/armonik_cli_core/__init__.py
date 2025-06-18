@@ -19,5 +19,5 @@ __all__ = [
     "FilterParam",
     "console",
     "base_group",
-    "CliConfig"
+    "CliConfig",
 ]

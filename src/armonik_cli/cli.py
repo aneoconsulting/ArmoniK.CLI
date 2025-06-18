@@ -2,14 +2,17 @@ import rich_click as click
 from armonik_cli import commands, __version__
 
 from armonik_cli_core import base_group
-from armonik_cli_core.common import  populate_option_groups_incremental
+from armonik_cli_core.common import populate_option_groups_incremental
 from armonik_cli_core.extensions import ENTRY_POINT_GROUP, ExtendableGroup, setup_command_groups
 
 click.rich_click.USE_RICH_MARKUP = True
 click.rich_click.USE_MARKDOWN = True
 click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
 click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
-click.rich_click.ERRORS_EPILOGUE = "To find out more, visit [link=https://github.com/aneoconsulting/ArmoniK.CLI]our repo[/link]."
+click.rich_click.ERRORS_EPILOGUE = (
+    "To find out more, visit [link=https://github.com/aneoconsulting/ArmoniK.CLI]our repo[/link]."
+)
+
 
 @click.group(
     cls=ExtendableGroup,
@@ -25,6 +28,7 @@ def cli(**kwargs) -> None:
     """
     pass
 
+
 cli.add_command(commands.extensions)
 cli.add_command(commands.sessions)
 cli.add_command(commands.tasks)
@@ -35,4 +39,3 @@ cli.add_command(commands.config)
 
 setup_command_groups()
 populate_option_groups_incremental(cli)
- 

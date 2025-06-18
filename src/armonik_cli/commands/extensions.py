@@ -5,10 +5,12 @@ from rich.table import Table
 from importlib.metadata import entry_points
 from armonik_cli_core.extensions import ENTRY_POINT_GROUP
 
+
 @click.group(name="extension")
 def extensions():
     """Discover and manage installed CLI extensions."""
     pass
+
 
 @extensions.command("list")
 def list_extensions():
@@ -36,7 +38,7 @@ def list_extensions():
         if ep.dist:
             package_name = ep.dist.name
             version = ep.dist.version
-        
+
         # Try to load the extension to check its status
         try:
             ep.load()

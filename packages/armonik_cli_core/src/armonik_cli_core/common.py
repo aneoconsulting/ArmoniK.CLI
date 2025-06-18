@@ -58,7 +58,10 @@ def get_command_paths_with_options(
 
     return paths
 
-def populate_option_groups_incremental(command: Union[click.Group, click.Command], parent_path: str = "") -> None:
+
+def populate_option_groups_incremental(
+    command: Union[click.Group, click.Command], parent_path: str = ""
+) -> None:
     """
     Populate option groups incrementally for a specific command tree.
     This adds to the existing OPTION_GROUPS rather than overwriting it.
@@ -90,11 +93,11 @@ def populate_option_groups_incremental(command: Union[click.Group, click.Command
 
     # Get option paths for just this command tree
     paths_options = get_command_paths_with_options(command, parent_path)
-    
+
     # Initialize OPTION_GROUPS if it doesn't exist
-    if not hasattr(click.rich_click, 'OPTION_GROUPS'):
+    if not hasattr(click.rich_click, "OPTION_GROUPS"):
         click.rich_click.OPTION_GROUPS = {}
-    
+
     # Add option groups for each path in this command tree
     for path, options in paths_options.items():
         click.rich_click.OPTION_GROUPS[path] = [
@@ -113,4 +116,3 @@ def populate_option_groups_incremental(command: Union[click.Group, click.Command
                 ),
             },
         ]
-

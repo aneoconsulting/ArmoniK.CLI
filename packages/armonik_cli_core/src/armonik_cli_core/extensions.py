@@ -9,6 +9,7 @@ from importlib.metadata import entry_points
 
 ENTRY_POINT_GROUP = "armonik.cli.extensions"
 
+
 class BrokenExtension(click.RichCommand):
     def __init__(self, name, error):
         super().__init__(name, help=f"[red]Error: Failed to load extension '{name}'.[/]")
@@ -17,21 +18,20 @@ class BrokenExtension(click.RichCommand):
 
     def invoke(self, ctx):
         """When invoked, print the error details."""
-        click.secho(f"Error: The extension '{self.name}' is broken and could not be loaded.", fg="red", err=True)
+        click.secho(
+            f"Error: The extension '{self.name}' is broken and could not be loaded.",
+            fg="red",
+            err=True,
+        )
         click.secho("The following error was caught:", fg="yellow", err=True)
         console = Console(stderr=True)
         try:
             raise self.error
         except Exception:
-            traceback_obj = Traceback(
-                show_locals=True, 
-                word_wrap=True,
-                extra_lines=2
-            )
+            traceback_obj = Traceback(show_locals=True, word_wrap=True, extra_lines=2)
             console.print(traceback_obj)
-        
-            raise click.ClickException(f"Extension '{self.name}' broken.")
 
+            raise click.ClickException(f"Extension '{self.name}' broken.")
 
 
 class ExtendableGroup(click.RichGroup):
@@ -40,23 +40,22 @@ class ExtendableGroup(click.RichGroup):
         self._loaded_commands = set()
         self._extension_commands = None  # Cache extension command names
         super().__init__(*args, **kwargs)
-        
 
     def _get_extension_command_names(self):
         """Get list of extension command names (cached)."""
         if self._extension_commands is not None:
             return self._extension_commands
-            
+
         if not self.entry_point_group:
             self._extension_commands = []
             return self._extension_commands
-            
+
         try:
             discovered_eps = entry_points(group=self.entry_point_group)
             self._extension_commands = [ep.name for ep in discovered_eps]
         except Exception:
             self._extension_commands = []
-            
+
         return self._extension_commands
 
     def list_commands(self, ctx):
@@ -66,13 +65,13 @@ class ExtendableGroup(click.RichGroup):
         """
         # Get static commands
         static_commands = super().list_commands(ctx)
-        
+
         # Get extension commands
         extension_commands = self._get_extension_command_names()
-        
+
         # Update command groups for rich-click
         self._update_command_groups(static_commands, extension_commands)
-        
+
         # Combine and return all commands
         return sorted(list(set(static_commands + extension_commands)))
 
@@ -80,25 +79,29 @@ class ExtendableGroup(click.RichGroup):
         """Update rich-click command groups."""
         if not static_commands and not extension_commands:
             return
-            
+
         # Determine the group name (this will be the CLI name or empty string)
         group_name = self.name or "cli"
-        
+
         # Build command groups
         command_groups = []
-        
+
         if static_commands:
-            command_groups.append({
-                "name": "Core Commands",
-                "commands": static_commands,
-            })
-        
+            command_groups.append(
+                {
+                    "name": "Core Commands",
+                    "commands": static_commands,
+                }
+            )
+
         if extension_commands:
-            command_groups.append({
-                "name": "Extensions",
-                "commands": extension_commands,
-            })
-        
+            command_groups.append(
+                {
+                    "name": "Extensions",
+                    "commands": extension_commands,
+                }
+            )
+
         # Set the command groups for this CLI
         click.rich_click.COMMAND_GROUPS[group_name] = command_groups
 
@@ -109,16 +112,16 @@ class ExtendableGroup(click.RichGroup):
         if command is not None:
             self._ensure_option_groups_populated(command, cmd_name)
             return command
-            
+
         # If no built-in command is found, look for an extension
         if not self.entry_point_group:
             return None
-        
+
         discovered_eps = entry_points(group=self.entry_point_group)
         ep = next((ep for ep in discovered_eps if ep.name == cmd_name), None)
 
         if ep is None:
-            return None 
+            return None
 
         try:
             loaded_extension = ep.load()
@@ -131,24 +134,25 @@ class ExtendableGroup(click.RichGroup):
 
         except Exception as e:
             return BrokenExtension(name=cmd_name, error=e)
-    
+
     def _ensure_option_groups_populated(self, command, cmd_name):
         """Ensure option groups are populated for a command."""
         command_key = f"{self.name}-{cmd_name}" if self.name else cmd_name
-        
+
         if command_key not in self._loaded_commands:
             self._loaded_commands.add(command_key)
-            
+
             parent_path = self.name if self.name else ""
-            
+
             from armonik_cli_core.common import populate_option_groups_incremental
+
             populate_option_groups_incremental(command, parent_path)
 
 
 def setup_command_groups():
     """Set up command groups for the main CLI."""
     core_commands = ["extension", "session", "task", "partition", "result", "cluster", "config"]
-    
+
     # Get extension commands
     extension_commands = []
     try:
@@ -156,7 +160,7 @@ def setup_command_groups():
         extension_commands = [ep.name for ep in discovered_eps]
     except Exception:
         pass
-    
+
     # Set up command groups
     command_groups = [
         {
@@ -164,13 +168,13 @@ def setup_command_groups():
             "commands": core_commands,
         }
     ]
-    
+
     if extension_commands:
-        command_groups.append({
-            "name": "Extensions",
-            "commands": extension_commands,
-        })
-    
-    click.rich_click.COMMAND_GROUPS = {
-        "armonik": command_groups
-    }
+        command_groups.append(
+            {
+                "name": "Extensions",
+                "commands": extension_commands,
+            }
+        )
+
+    click.rich_click.COMMAND_GROUPS = {"armonik": command_groups}
