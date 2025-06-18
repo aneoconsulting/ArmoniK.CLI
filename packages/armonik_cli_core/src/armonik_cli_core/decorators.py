@@ -222,11 +222,13 @@ def base_command(
         if not pass_config:
             kwargs.pop("config", None)
             kwargs.pop("additional_config", None)
-        kwargs["logger"] = get_logger(
-            "armonik_cli", debug=kwargs["config"].debug, verbose=kwargs["config"].verbose
-        )
+            kwargs["logger"] = get_logger("armonik_cli", debug=False, verbose=False)
+        else:
+            kwargs["logger"] = get_logger(
+                "armonik_cli", debug=kwargs["config"].debug, verbose=kwargs["config"].verbose
+            )
         kwargs["logger"].debug(f"Executing command: {func.__name__}")
-        kwargs["logger"].debug(f"Config: {kwargs['config']}")
+        kwargs["logger"].debug(f"Config: {kwargs.get('config', None)}")
         kwargs["logger"].debug(f"Arguments: {kwargs}")
         command_out = func(*args, **kwargs)
         if command_out:

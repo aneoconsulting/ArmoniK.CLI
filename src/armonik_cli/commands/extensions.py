@@ -6,6 +6,7 @@ from armonik_cli_core.groups import ENTRY_POINT_GROUP
 from armonik_cli_core.console import console
 
 
+
 @click.group(name="extension")
 def extensions():
     """Discover and manage installed CLI extensions."""

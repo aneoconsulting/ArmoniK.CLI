@@ -2,11 +2,18 @@ from pydantic_core import PydanticUndefined
 import rich_click as click
 
 from rich.table import Table
+from rich.markdown import Markdown
+from rich.syntax import Syntax
+from rich.console import Group
+from rich.panel import Panel
 
 from armonik_cli_core.configuration import CliConfig
 from armonik_cli_core import base_group, console
 from armonik_cli_core.decorators import base_command
 from armonik_cli.utils import pretty_type
+
+click.rich_click.USE_RICH_MARKUP = True
+click.rich_click.USE_MARKDOWN = True
 
 
 @click.group(name="config")
@@ -58,7 +65,7 @@ def config_show(config: CliConfig, output, **kwargs) -> None:
     """Show the current CLI configuration."""
     config = CliConfig()
     config_dump = config._config.model_dump()
-    if output == "table":
+    if config.output == "table":
         # Decided to do it like this so I can have different tables per field group
         table = Table(title="CLI Configuration")
         table.add_column("Field", justify="left")
@@ -72,9 +79,9 @@ def config_show(config: CliConfig, output, **kwargs) -> None:
 
 @config.command(name="list")
 @base_command(pass_config=True)
-def config_list(config: CliConfig, output, **kwargs) -> None:
+def config_list(config, **kwargs) -> None:
     """List all available configuration fields."""
-    if output == "table":
+    if config.output == "table":
         # Decided to do it like this so I can have different tables per field group (refactor will include grouping for yamls too)
         available_config_fields_table = Table(title="Available configuration fields")
         available_config_fields_table.add_column("Field", justify="left")
@@ -100,4 +107,51 @@ def config_list(config: CliConfig, output, **kwargs) -> None:
                     "Description": details.description,
                 }
             )
-        console.formatted_print(available_config_fields, print_format=output)
+        console.formatted_print(available_config_fields, print_format=config.output)
+
+
+@config.command(name="completions")
+@click.argument(
+    "shell",
+    type=click.Choice(["zsh", "bash", "fish"], case_sensitive=True),
+    required=True,
+)
+@base_command
+def config_completions(shell, **kwargs) -> None:
+    """Generate auto-completions for the ArmoniK cli"""
+    if shell == "zsh":
+        console.print(
+            Panel(
+                Group(
+                    "Add this to your [blue]~/.zshrc[/]\n",
+                    Syntax(
+                        'eval "$(_ARMONIK_COMPLETE=zsh_source armonik)"', "bash", theme="monokai"
+                    ),
+                ),
+                border_style="blue",
+            )
+        )
+    elif shell == "bash":
+        console.print(
+            Panel(
+                Group(
+                    "Add this to your [blue]~/.bashrc[/]\n",
+                    Syntax(
+                        'eval "$(_ARMONIK_COMPLETE=bash_source armonik)"', "bash", theme="monokai"
+                    ),
+                ),
+                border_style="blue",
+            )
+        )
+    elif shell == "fish":
+        console.print(
+            Panel(
+                Group(
+                    "Add this to your [blue]~/.config/fish/completions/foo-bar.fish[/]\n",
+                    Syntax(
+                        "_ARMONIK_COMPLETE=fish_source armonik | source", "bash", theme="monokai"
+                    ),
+                ),
+                border_style="blue",
+            )
+        )
