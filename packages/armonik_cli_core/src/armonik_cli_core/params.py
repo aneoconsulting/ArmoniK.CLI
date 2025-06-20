@@ -13,7 +13,7 @@ from armonik.common.filter.filter import FType
 from lark.exceptions import VisitError
 
 from armonik_cli.utils import parse_time_delta
-from armonik_cli.core.filters import FilterParser, ParsingError
+from .filters import FilterParser, ParsingError
 
 
 class KeyValuePairParam(click.ParamType):

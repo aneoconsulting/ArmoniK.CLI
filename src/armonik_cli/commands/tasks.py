@@ -7,9 +7,9 @@ from armonik.client.tasks import ArmoniKTasks
 from armonik.common import Task, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
-from armonik_cli.core import console, base_command, base_group
-from armonik_cli.core.configuration import CliConfig, create_grpc_channel
-from armonik_cli.core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
+from armonik_cli_core import console, base_command, base_group
+from armonik_cli_core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
 
 
 @click.group(name="task")

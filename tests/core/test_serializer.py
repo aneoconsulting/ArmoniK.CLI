@@ -6,7 +6,7 @@ from datetime import timedelta, datetime
 
 from armonik.common import Session, TaskOptions, SessionStatus, Task, TaskStatus, Partition
 
-from armonik_cli.core.serialize import serialize
+from armonik_cli_core.serialize import serialize
 
 
 # Helper classes and functions for testing

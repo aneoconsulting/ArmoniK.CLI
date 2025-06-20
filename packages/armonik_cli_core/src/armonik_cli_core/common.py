@@ -2,7 +2,7 @@ import rich_click as click
 
 from typing import Callable, Any, Dict, List, Union
 from typing_extensions import TypeAlias
-from armonik_cli.core.configuration import CliConfig
+from .configuration import CliConfig
 
 from rich_click.utils import OptionGroupDict
 
@@ -59,8 +59,13 @@ def get_command_paths_with_options(
     return paths
 
 
-# Construct the needed option groups
-def populate_option_groups(cli: click.Group) -> None:
+def populate_option_groups_incremental(
+    command: Union[click.Group, click.Command], parent_path: str = ""
+) -> None:
+    """
+    Populate option groups incrementally for a specific command tree.
+    This adds to the existing OPTION_GROUPS rather than overwriting it.
+    """
     COMMON_OPTIONS_GROUP: OptionGroupDict = {
         "name": "Common options",
         "options": ["--help", "--config", "--version"],
@@ -71,6 +76,7 @@ def populate_option_groups(cli: click.Group) -> None:
         "options": [],
     }
 
+    # Build the common and cluster options from config fields
     for config_field_name, config_field_info in CliConfig.ConfigModel.model_fields.items():
         if (
             len(config_field_info.metadata) > 0
@@ -85,8 +91,16 @@ def populate_option_groups(cli: click.Group) -> None:
                 f"--{config_field_name.replace('_', '-')}"
             )
 
-    click.rich_click.OPTION_GROUPS = {
-        path: [
+    # Get option paths for just this command tree
+    paths_options = get_command_paths_with_options(command, parent_path)
+
+    # Initialize OPTION_GROUPS if it doesn't exist
+    if not hasattr(click.rich_click, "OPTION_GROUPS"):
+        click.rich_click.OPTION_GROUPS = {}
+
+    # Add option groups for each path in this command tree
+    for path, options in paths_options.items():
+        click.rich_click.OPTION_GROUPS[path] = [
             COMMON_OPTIONS_GROUP,
             CLUSTER_CONFIG_OPTIONS_GROUP,
             {
@@ -102,5 +116,3 @@ def populate_option_groups(cli: click.Group) -> None:
                 ),
             },
         ]
-        for path, options in get_command_paths_with_options(cli).items()
-    }

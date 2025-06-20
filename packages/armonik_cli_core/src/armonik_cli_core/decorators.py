@@ -7,11 +7,11 @@ from functools import wraps, partial
 from typing import Callable, List, Optional, Any, Tuple
 from typing_extensions import TypeAlias
 
-from armonik_cli.core.configuration import CliConfig
-from armonik_cli.core.console import console
+from .configuration import CliConfig
+from .console import console
 
-from armonik_cli.core.options import GlobalOption
-from armonik_cli.core.logging import get_logger
+from .options import GlobalOption
+from .logging import get_logger
 from armonik_cli.exceptions import (
     InternalCliError,
     InternalArmoniKError,

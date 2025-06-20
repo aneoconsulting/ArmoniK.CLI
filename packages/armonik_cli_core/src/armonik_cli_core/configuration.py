@@ -5,7 +5,7 @@ import rich_click as click
 
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from pathlib import Path
-from armonik_cli.core.options import GlobalOption
+from .options import GlobalOption
 
 from armonik.common.channel import create_channel
 
