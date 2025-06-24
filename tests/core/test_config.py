@@ -5,7 +5,7 @@ import os
 
 from unittest.mock import patch
 from pathlib import Path
-from armonik_cli.core.configuration import CliConfig
+from armonik_cli_core.configuration import CliConfig
 
 
 @pytest.fixture

@@ -9,15 +9,15 @@ from armonik.client.sessions import ArmoniKSessions
 from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
-from armonik_cli.core import (
+from armonik_cli_core import (
     base_command,
     KeyValuePairParam,
     TimeDeltaParam,
     FilterParam,
     base_group,
 )
-from armonik_cli.core.configuration import CliConfig, create_grpc_channel
-from armonik_cli.core.params import FieldParam
+from armonik_cli_core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core.params import FieldParam
 
 
 @click.group(name="session")

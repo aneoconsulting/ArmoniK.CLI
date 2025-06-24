@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from armonik.common import Partition, Result, ResultStatus, Session, SessionStatus, Task, TaskStatus
 from armonik.common.filter import PartitionFilter, ResultFilter, SessionFilter, TaskFilter
 
-from armonik_cli.core.filters import FilterParser
+from armonik_cli_core.filters import FilterParser
 
 
 @pytest.mark.parametrize(

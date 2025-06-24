@@ -7,8 +7,8 @@ from rich.table import Table
 from rich.text import Text
 from rich import print
 
-from armonik_cli.core import console, base_command, base_group
-from armonik_cli.core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core import console, base_command, base_group
+from armonik_cli_core import CliConfig, create_grpc_channel
 
 
 @click.group(name="cluster")

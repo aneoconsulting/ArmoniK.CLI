@@ -1,13 +1,13 @@
-from armonik_cli.core.console import console
-from armonik_cli.core.decorators import base_command, base_group
-from armonik_cli.core.params import (
+from .console import console
+from .decorators import base_command, base_group
+from .params import (
     KeyValuePairParam,
     TimeDeltaParam,
     FilterParam,
     ResultNameDataParam,
     FieldParam,
 )
-
+from .configuration import CliConfig, create_grpc_channel
 
 __all__ = [
     "base_command",
@@ -18,4 +18,6 @@ __all__ = [
     "FilterParam",
     "console",
     "base_group",
+    "CliConfig",
+    "create_grpc_channel",
 ]

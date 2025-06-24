@@ -10,10 +10,10 @@ from armonik.client.results import ArmoniKResults
 from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
-from armonik_cli.core import console, base_command, base_group
-from armonik_cli.core.configuration import CliConfig, create_grpc_channel
-from armonik_cli.core.options import MutuallyExclusiveOption
-from armonik_cli.core.params import FieldParam, FilterParam, ResultNameDataParam
+from armonik_cli_core import console, base_command, base_group
+from armonik_cli_core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core.options import MutuallyExclusiveOption
+from armonik_cli_core.params import FieldParam, FilterParam, ResultNameDataParam
 
 
 @click.group(name="result")
