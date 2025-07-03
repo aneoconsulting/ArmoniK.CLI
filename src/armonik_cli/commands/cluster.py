@@ -1,4 +1,3 @@
-import rich_click as click
 
 from armonik.client.versions import ArmoniKVersions
 from armonik.client.health_checks import ArmoniKHealthChecks
@@ -9,9 +8,10 @@ from rich import print
 
 from armonik_cli_core import console, base_command, base_group
 from armonik_cli_core import CliConfig, create_grpc_channel
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="cluster")
+@ak_group(name="cluster")
 @base_group
 def cluster(**kwargs) -> None:
     """Manage ArmoniK cluster."""

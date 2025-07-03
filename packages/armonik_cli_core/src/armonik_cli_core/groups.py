@@ -2,9 +2,10 @@ import rich_click as click
 
 from rich.traceback import Traceback
 from .console import console
+from .commands import AkCommand
 
 from importlib.metadata import entry_points
-
+from functools import partial
 
 ENTRY_POINT_GROUP = "armonik.cli.extensions"
 
@@ -226,6 +227,18 @@ class ExtendableGroup(click.RichGroup):
             from armonik_cli_core.utils import populate_option_groups_incremental
 
             populate_option_groups_incremental(command, parent_path)
+
+
+class AkGroup(click.RichGroup):
+    """A custom group that forces all its commands to use AkCommand."""
+
+    def command(self, *args, **kwargs):
+        # Set the default command class for all commands in this group
+        kwargs.setdefault("cls", AkCommand)
+        return super().command(*args, **kwargs)
+
+
+ak_group = partial(click.group, cls=AkGroup)
 
 
 def setup_command_groups():

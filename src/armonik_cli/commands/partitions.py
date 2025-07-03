@@ -9,9 +9,10 @@ from armonik.common import Partition, Direction
 from armonik_cli_core import base_command, base_group
 from armonik_cli_core.params import FilterParam, FieldParam
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="partition")
+@ak_group(name="partition")
 @base_group
 def partitions(**kwargs) -> None:
     """Manage cluster partitions."""
