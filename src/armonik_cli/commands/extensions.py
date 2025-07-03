@@ -4,9 +4,10 @@ from rich.table import Table
 from importlib.metadata import entry_points
 from armonik_cli_core.groups import ENTRY_POINT_GROUP
 from armonik_cli_core.console import console
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="extension")
+@ak_group(name="extension")
 def extensions():
     """Discover and manage installed CLI extensions."""
     pass

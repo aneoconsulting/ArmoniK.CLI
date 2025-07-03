@@ -10,9 +10,10 @@ from armonik.common.filter import TaskFilter, Filter
 from armonik_cli_core import console, base_command, base_group
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
 from armonik_cli_core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="task")
+@ak_group(name="task")
 @base_group
 def tasks(**kwargs) -> None:
     """Manage cluster's tasks."""

@@ -18,9 +18,10 @@ from armonik_cli_core import (
 )
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
 from armonik_cli_core.params import FieldParam
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="session")
+@ak_group(name="session")
 @base_group
 def sessions(**kwargs) -> None:
     """Manage cluster sessions."""

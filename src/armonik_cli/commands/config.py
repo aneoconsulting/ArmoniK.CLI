@@ -10,12 +10,13 @@ from armonik_cli_core.configuration import CliConfig
 from armonik_cli_core import base_group, console
 from armonik_cli_core.decorators import base_command
 from armonik_cli.utils import pretty_type
+from armonik_cli_core.groups import ak_group
 
 click.rich_click.USE_RICH_MARKUP = True
 click.rich_click.USE_MARKDOWN = True
 
 
-@click.group(name="config")
+@ak_group(name="config")
 @base_group
 def config(**kwargs) -> None:
     """Manage CLI configuration."""

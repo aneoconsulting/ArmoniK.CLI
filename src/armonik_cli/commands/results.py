@@ -14,9 +14,10 @@ from armonik_cli_core import console, base_command, base_group
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
 from armonik_cli_core.options import MutuallyExclusiveOption
 from armonik_cli_core.params import FieldParam, FilterParam, ResultNameDataParam
+from armonik_cli_core.groups import ak_group
 
 
-@click.group(name="result")
+@ak_group(name="result")
 @base_group
 def results(**kwargs) -> None:
     """Manage results."""
