@@ -107,20 +107,18 @@ def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional
 @click.option(
     "--max-retries",
     type=int,
-    required=True,
+    default=3,
     help="Maximum default number of execution attempts for session tasks.",
     metavar="NUM_RETRIES",
 )
 @click.option(
     "--max-duration",
     type=TimeDeltaParam(),
-    required=True,
+    default="00:01:00.00",
     help="Maximum default task execution time (format HH:MM:SS.MS).",
     metavar="DURATION",
 )
-@click.option(
-    "--priority", type=int, required=True, help="Default task priority.", metavar="PRIORITY"
-)
+@click.option("--priority", type=int, default=1, help="Default task priority.", metavar="PRIORITY")
 @click.option(
     "--partition",
     type=str,
