@@ -34,7 +34,3 @@ jobs:
       - name: Publish armonik-cli to PyPi
         if: github.event_name == 'release' # Publish on releases
         run: uv publish -t ${{ secrets.PYPI_CLI_TOKEN }} 
-
-      - name: Publish armonik-cli-core to PyPi
-        if: github.event_name == 'release' # Publish on releases
-        run: uv publish --package armonik_cli_core -t ${{ secrets.PYPI_CLI_TOKEN }} 
