@@ -1,4 +1,4 @@
-import rich_click as click
+import armonik_cli_core as akcc
 
 from typing import List, Optional, Union
 
@@ -6,47 +6,42 @@ from armonik.client.partitions import ArmoniKPartitions
 from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
-from armonik_cli_core import base_command, base_group
-from armonik_cli_core.params import FilterParam, FieldParam
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-from armonik_cli_core.groups import ak_group
 
 
-@ak_group(name="partition")
-@base_group
+@akcc.group(name="partition")
 def partitions(**kwargs) -> None:
     """Manage cluster partitions."""
     pass
 
 
-@partitions.command(name="list")
-@click.option(
+@partitions.command(name="list", pass_config=True, auto_output="table")
+@akcc.option(
     "-f",
     "--filter",
     "filter_with",
-    type=FilterParam("Partition"),
+    type=akcc.FilterParam("Partition"),
     required=False,
     help="An expression to filter partitions with",
     metavar="FILTER EXPR",
 )
-@click.option(
+@akcc.option(
     "--sort-by",
-    type=FieldParam("Partition"),
+    type=akcc.FieldParam("Partition"),
     required=False,
     help="Attribute of partition to sort with.",
 )
-@click.option(
+@akcc.option(
     "--sort-direction",
-    type=click.Choice(["asc", "desc"], case_sensitive=False),
+    type=akcc.Choice(["asc", "desc"], case_sensitive=False),
     default="asc",
     required=False,
     help="Whether to sort by ascending or by descending order.",
 )
-@click.option(
+@akcc.option(
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
-@click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command(pass_config=True, auto_output="table")
+@akcc.option("--page-size", default=100, help="Number of elements in each page")
 def partition_list(
     config: CliConfig,
     filter_with: Union[PartitionFilter, None],
@@ -81,9 +76,8 @@ def partition_list(
         return None
 
 
-@partitions.command(name="get")
-@click.argument("partition-ids", type=str, nargs=-1, required=True)
-@base_command(pass_config=True, auto_output="json")
+@partitions.command(name="get", pass_config=True, auto_output="json")
+@akcc.argument("partition-ids", type=str, nargs=-1, required=True)
 def partition_get(
     config: CliConfig, partition_ids: List[str], **kwargs
 ) -> Optional[List[Partition]]:

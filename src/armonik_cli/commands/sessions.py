@@ -1,6 +1,6 @@
+import armonik_cli_core as akcc
 import logging
 import grpc
-import rich_click as click
 
 from datetime import timedelta
 from typing import List, Optional, Tuple, Union
@@ -9,53 +9,42 @@ from armonik.client.sessions import ArmoniKSessions
 from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
-from armonik_cli_core import (
-    base_command,
-    KeyValuePairParam,
-    TimeDeltaParam,
-    FilterParam,
-    base_group,
-)
 from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-from armonik_cli_core.params import FieldParam
-from armonik_cli_core.groups import ak_group
 
 
-@ak_group(name="session")
-@base_group
+@akcc.group(name="session")
 def sessions(**kwargs) -> None:
     """Manage cluster sessions."""
     pass
 
 
-@sessions.command(name="list")
-@click.option(
+@sessions.command(name="list", pass_config=True, auto_output="table")
+@akcc.option(
     "-f",
     "--filter",
     "filter_with",
-    type=FilterParam("Session"),
+    type=akcc.FilterParam("Session"),
     required=False,
     help="An expression to filter the sessions to be listed.",
     metavar="FILTER EXPR",
 )
-@click.option(
+@akcc.option(
     "--sort-by",
-    type=FieldParam("Session"),
+    type=akcc.FieldParam("Session"),
     required=False,
     help="Attribute of session to sort with.",
 )
-@click.option(
+@akcc.option(
     "--sort-direction",
-    type=click.Choice(["asc", "desc"], case_sensitive=False),
+    type=akcc.Choice(["asc", "desc"], case_sensitive=False),
     default="asc",
     required=False,
     help="Whether to sort by ascending or by descending order.",
 )
-@click.option(
+@akcc.option(
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
-@click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command(pass_config=True, auto_output="table")
+@akcc.option("--page-size", default=100, help="Number of elements in each page")
 def session_list(
     config: CliConfig,
     filter_with: Union[SessionFilter, None],
@@ -90,9 +79,8 @@ def session_list(
     return None
 
 
-@sessions.command(name="get")
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="table")
+@sessions.command(name="get", pass_config=True, auto_output="table")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
     """Get details of a given session."""
     with create_grpc_channel(config) as channel:
@@ -104,30 +92,30 @@ def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional
         return sessions
 
 
-@sessions.command(name="create")
-@click.option(
+@sessions.command(name="create", pass_config=True, auto_output="json")
+@akcc.option(
     "--max-retries",
     type=int,
     default=3,
     help="Maximum default number of execution attempts for session tasks.",
     metavar="NUM_RETRIES",
 )
-@click.option(
+@akcc.option(
     "--max-duration",
-    type=TimeDeltaParam(),
+    type=akcc.TimeDeltaParam(),
     default="00:01:00.00",
     help="Maximum default task execution time (format HH:MM:SS.MS).",
     metavar="DURATION",
 )
-@click.option("--priority", type=int, default=1, help="Default task priority.", metavar="PRIORITY")
-@click.option(
+@akcc.option("--priority", type=int, default=1, help="Default task priority.", metavar="PRIORITY")
+@akcc.option(
     "--partition",
     type=str,
     multiple=True,
     help="Partition to add to the session.",
     metavar="PARTITION",
 )
-@click.option(
+@akcc.option(
     "--default-partition",
     type=str,
     default="default",
@@ -135,42 +123,41 @@ def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional
     help="Default partition.",
     metavar="PARTITION",
 )
-@click.option(
+@akcc.option(
     "--application-name", type=str, required=False, help="Default application name.", metavar="NAME"
 )
-@click.option(
+@akcc.option(
     "--application-version",
     type=str,
     required=False,
     help="Default application version.",
     metavar="VERSION",
 )
-@click.option(
+@akcc.option(
     "--application-namespace",
     type=str,
     required=False,
     help="Default application namespace.",
     metavar="NAMESPACE",
 )
-@click.option(
+@akcc.option(
     "--application-service",
     type=str,
     required=False,
     help="Default application service.",
     metavar="SERVICE",
 )
-@click.option(
+@akcc.option(
     "--engine-type", type=str, required=False, help="Default engine type.", metavar="ENGINE_TYPE"
 )
-@click.option(
+@akcc.option(
     "--option",
-    type=KeyValuePairParam(),
+    type=akcc.KeyValuePairParam(),
     required=False,
     multiple=True,
     help="Additional default options.",
     metavar="KEY=VALUE",
 )
-@base_command(pass_config=True, auto_output="json")
 def session_create(
     config: CliConfig,
     max_retries: int,
@@ -208,19 +195,18 @@ def session_create(
         return session
 
 
-@sessions.command(name="cancel")
-@click.option(
+@sessions.command(name="cancel", pass_config=True, auto_output="json")
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the cancel operation on all supplied sessions all at once in advance.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips sessions that haven't been found when trying to cancel them.",
 )
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_cancel(
     config: CliConfig,
     session_ids: List[str],
@@ -234,7 +220,7 @@ def session_cancel(
         sessions_client = ArmoniKSessions(channel)
         cancelled_sessions = []
         for session_id in session_ids:
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to cancel the session with id [{session_id}]",
                 abort=False,
             ):
@@ -250,9 +236,8 @@ def session_cancel(
         return cancelled_sessions
 
 
-@sessions.command(name="pause")
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@sessions.command(name="pause", pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_pause(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
     """Pause sessions."""
     with create_grpc_channel(config) as channel:
@@ -264,9 +249,8 @@ def session_pause(config: CliConfig, session_ids: List[str], **kwargs) -> Option
         return paused_sessions
 
 
-@sessions.command(name="resume")
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@sessions.command(name="resume", pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
     """Resume sessions."""
     with create_grpc_channel(config) as channel:
@@ -278,19 +262,18 @@ def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> Optio
         return resumed_sessions
 
 
-@sessions.command(name="close")
-@click.option(
+@sessions.command(name="close", pass_config=True, auto_output="json")
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the close operation on all supplied sessions all at once in advance.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips sessions that haven't been found when trying to close them.",
 )
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_close(
     config: CliConfig,
     logger: logging.Logger,
@@ -304,7 +287,7 @@ def session_close(
         sessions_client = ArmoniKSessions(channel)
         closed_sessions = []
         for session_id in session_ids:
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to close the session with id [{session_id}]",
                 abort=False,
             ):
@@ -320,19 +303,18 @@ def session_close(
         return closed_sessions
 
 
-@sessions.command(name="purge")
-@click.option(
+@sessions.command(name="purge", pass_config=True, auto_output="json")
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the purge operation on all supplied sessions all at once in advance.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips sessions that haven't been found when trying to purge them.",
 )
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_purge(
     config: CliConfig,
     logger: logging.Logger,
@@ -346,7 +328,7 @@ def session_purge(
         sessions_client = ArmoniKSessions(channel)
         purged_sessions = []
         for session_id in session_ids:
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to purge the session with id [{session_id}]",
                 abort=False,
             ):
@@ -363,19 +345,18 @@ def session_purge(
         return purged_sessions
 
 
-@sessions.command(name="delete")
-@click.option(
+@sessions.command(name="delete", pass_config=True, auto_output="json")
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the delete operation on all supplied sessions all at once in advance.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips sessions that haven't been found when trying to delete them.",
 )
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_delete(
     config: CliConfig,
     logger: logging.Logger,
@@ -389,7 +370,7 @@ def session_delete(
         sessions_client = ArmoniKSessions(channel)
         deleted_sessions = []
         for session_id in session_ids:
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to delete the session with id [{session_id}]",
                 abort=False,
             ):
@@ -405,31 +386,30 @@ def session_delete(
         return deleted_sessions
 
 
-@sessions.command(name="stop-submission")
-@click.option(
+@sessions.command(name="stop-submission", pass_config=True, auto_output="json")
+@akcc.option(
     "--clients",
     is_flag=True,
     default=False,
     help="Prevent clients from submitting new tasks in the session.",
 )
-@click.option(
+@akcc.option(
     "--workers",
     is_flag=True,
     default=False,
     help="Prevent workers from submitting new tasks in the session.",
 )
-@click.option(
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the block submission operation on all supplied sessions all at once in advance.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips sessions that haven't been found when trying to block submission to them.",
 )
-@click.argument("session-ids", required=True, type=str, nargs=-1)
-@base_command(pass_config=True, auto_output="json")
+@akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_stop_submission(
     config: CliConfig,
     logger: logging.Logger,
@@ -450,7 +430,7 @@ def session_stop_submission(
                 + (" and " if clients and workers else "")
                 + ("workers" if workers else "")
             )
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to stop {blocked_submitters} from submitting tasks to the session with id [{session_id}]",
                 abort=False,
             ):

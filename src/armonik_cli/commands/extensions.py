@@ -1,13 +1,12 @@
-import rich_click as click
+import armonik_cli_core as akcc
 from rich.table import Table
 
 from importlib.metadata import entry_points
 from armonik_cli_core.groups import ENTRY_POINT_GROUP
 from armonik_cli_core.console import console
-from armonik_cli_core.groups import ak_group
 
 
-@ak_group(name="extension")
+@akcc.group(name="extension")
 def extensions():
     """Discover and manage installed CLI extensions."""
     pass
@@ -20,7 +19,7 @@ def list_extensions():
         eps = entry_points(group=ENTRY_POINT_GROUP)
     except Exception as e:
         console.print(f"[red]Error discovering entry points: {e}[/red]")
-        raise click.exceptions.Exit(1)
+        raise akcc.Exit(1)
 
     if not eps:
         console.print("[yellow]No extensions found.[/yellow]")

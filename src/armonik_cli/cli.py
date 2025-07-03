@@ -1,7 +1,7 @@
 import rich_click as click
 from armonik_cli import commands, __version__
 
-from armonik_cli_core import base_group
+import armonik_cli_core as akcc
 from armonik_cli_core.utils import populate_option_groups_incremental
 from armonik_cli_core.groups import ENTRY_POINT_GROUP, ExtendableGroup, setup_command_groups
 
@@ -14,14 +14,13 @@ click.rich_click.ERRORS_EPILOGUE = (
 )
 
 
-@click.group(
+@akcc.group(
     cls=ExtendableGroup,
     entry_point_group=ENTRY_POINT_GROUP,
     name="armonik",
     context_settings={"help_option_names": ["-h", "--help"], "auto_envvar_prefix": "AK"},
 )
 @click.version_option(version=__version__, prog_name="armonik")
-@base_group
 def cli(**kwargs) -> None:
     """
     ArmoniK CLI is a tool to monitor and manage ArmoniK clusters.

@@ -1,5 +1,5 @@
 from pydantic_core import PydanticUndefined
-import rich_click as click
+import armonik_cli_core as akcc
 
 from rich.table import Table
 from rich.syntax import Syntax
@@ -7,60 +7,54 @@ from rich.console import Group
 from rich.panel import Panel
 
 from armonik_cli_core.configuration import CliConfig
-from armonik_cli_core import base_group, console
-from armonik_cli_core.decorators import base_command
+from armonik_cli_core import console
 from armonik_cli.utils import pretty_type
-from armonik_cli_core.groups import ak_group
 
-click.rich_click.USE_RICH_MARKUP = True
-click.rich_click.USE_MARKDOWN = True
+akcc.rich_click.USE_RICH_MARKUP = True
+akcc.rich_click.USE_MARKDOWN = True
 
 
-@ak_group(name="config")
-@base_group
+@akcc.group(name="config")
 def config(**kwargs) -> None:
     """Manage CLI configuration."""
     pass
 
 
-@config.command(name="get")
-@click.argument(
+@config.command(name="get", pass_config=True)
+@akcc.argument(
     "field",
     type=str,
     required=True,
 )
-@base_command(pass_config=True)
 def config_get(config: CliConfig, field: str, **kwargs) -> None:
     """Get the current CLI configuration."""
     if field in CliConfig.ConfigModel.model_fields.keys():
         console.print(CliConfig().get(field))
     else:
-        raise click.ClickException(
+        raise akcc.ClickException(
             f"Field {field} is not part of the configuration. Call `armonik config list` to see all available fields."
         )
 
 
-@config.command(name="set")
-@click.argument(
+@config.command(name="set", pass_config=True)
+@akcc.argument(
     "field",
     type=str,
     required=True,
 )
-@click.argument("value", type=str, required=True)
-@base_command(pass_config=True)
+@akcc.argument("value", type=str, required=True)
 def config_set(config: CliConfig, field: str, value: str, **kwargs) -> None:
     """Set a field in the CLI configuration."""
     if field in CliConfig.ConfigModel.model_fields.keys():
         CliConfig().set(**{field: value})
         console.print(f"Set {field} to {value}")
     else:
-        raise click.ClickException(
+        raise akcc.ClickException(
             f"Field {field} is not part of the configuration. Call `armonik config list` to see all available fields."
         )
 
 
-@config.command(name="show")
-@base_command(pass_config=True)
+@config.command(name="show", pass_config=True)
 def config_show(config: CliConfig, output, **kwargs) -> None:
     """Show the current CLI configuration."""
     config = CliConfig()
@@ -77,8 +71,7 @@ def config_show(config: CliConfig, output, **kwargs) -> None:
         console.formatted_print(config_dump, print_format=output)
 
 
-@config.command(name="list")
-@base_command(pass_config=True)
+@config.command(name="list", pass_config=True)
 def config_list(config, **kwargs) -> None:
     """List all available configuration fields."""
     if config.output == "table":
@@ -111,12 +104,11 @@ def config_list(config, **kwargs) -> None:
 
 
 @config.command(name="completions")
-@click.argument(
+@akcc.argument(
     "shell",
-    type=click.Choice(["zsh", "bash", "fish"], case_sensitive=True),
+    type=akcc.Choice(["zsh", "bash", "fish"], case_sensitive=True),
     required=True,
 )
-@base_command
 def config_completions(shell, **kwargs) -> None:
     """Generate auto-completions for the ArmoniK cli"""
     if shell == "zsh":

@@ -1,11 +1,13 @@
+from typing import Any, Callable, Optional, Type, TypeVar, Union, cast
 import rich_click as click
 
 from rich.traceback import Traceback
+
 from .console import console
-from .commands import AkCommand
+from .commands import AkCommand, ak_command
+from .decorators import base_group
 
 from importlib.metadata import entry_points
-from functools import partial
 
 ENTRY_POINT_GROUP = "armonik.cli.extensions"
 
@@ -232,13 +234,76 @@ class ExtendableGroup(click.RichGroup):
 class AkGroup(click.RichGroup):
     """A custom group that forces all its commands to use AkCommand."""
 
-    def command(self, *args, **kwargs):
-        # Set the default command class for all commands in this group
+    def command(self, name=None, **kwargs):
+        """Override command method to use ak_command instead of rich_click.command"""
+        # Extract base_command specific arguments with defaults
+        use_global_options = kwargs.pop("use_global_options", True)
+        pass_config = kwargs.pop("pass_config", False)
+        auto_output = kwargs.pop("auto_output", None)
+        default_table = kwargs.pop("default_table", None)
+
         kwargs.setdefault("cls", AkCommand)
-        return super().command(*args, **kwargs)
+
+        # Use ak_command decorator with the same signature
+        return ak_command(
+            group=super(),
+            name=name,
+            use_global_options=use_global_options,
+            pass_config=pass_config,
+            auto_output=auto_output,
+            default_table=default_table,
+            **kwargs,
+        )
 
 
-ak_group = partial(click.group, cls=AkGroup)
+_AnyCallable = Callable[..., Any]
+GrpType = TypeVar("GrpType", bound=click.Group)
+
+
+def ak_group(
+    name: Union[str, _AnyCallable, None] = None,
+    cls: Optional[Type[GrpType]] = None,
+    use_global_options: bool = True,
+    use_custom_parsing: bool = True,
+    **attrs: Any,
+) -> Union[click.Group, Callable[[_AnyCallable], Union[AkGroup, GrpType]]]:
+    """
+    Custom group decorator function.
+
+    Args:
+        name: Name of the group
+        cls: Custom group class to use
+        use_global_options: Whether to apply base_group decorator
+        use_custom_parsing: Whether to use AkGroup as default cls
+        **attrs: All other parameters passed to click.group
+    """
+    # Set default cls if not provided and use_custom_parsing is True
+    if cls is None and use_custom_parsing:
+        cls = cast(Type[GrpType], AkGroup)
+
+    # Handle the case where the decorator is used without parentheses
+    # e.g., @ak_group instead of @ak_group()
+    if callable(name):
+        func = name
+
+        # Apply base_group first if needed, then click.group
+        if use_global_options:
+            func = base_group(func)
+
+        group_instance = click.group(cls=cls, **attrs)(func)
+        return group_instance
+
+    # Handle the normal case where decorator is used with parentheses
+    # e.g., @ak_group(name="sessions") or @ak_group()
+    def decorator(func):
+        # Apply base_group first if needed, then click.group
+        if use_global_options:
+            func = base_group(func)
+
+        group_instance = click.group(name, cls=cls, **attrs)(func)
+        return group_instance
+
+    return decorator
 
 
 def setup_command_groups():
