@@ -6,8 +6,6 @@ from armonik.client.partitions import ArmoniKPartitions
 from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-
 
 @akcc.group(name="partition")
 def partitions(**kwargs) -> None:
@@ -43,7 +41,7 @@ def partitions(**kwargs) -> None:
 )
 @akcc.option("--page-size", default=100, help="Number of elements in each page")
 def partition_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[PartitionFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -52,7 +50,7 @@ def partition_list(
     **kwargs,
 ) -> Optional[List[Partition]]:
     """List the partitions in an ArmoniK cluster."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
         curr_page = page if page > 0 else 0
         partitions_list = []
@@ -79,10 +77,10 @@ def partition_list(
 @partitions.command(name="get", pass_config=True, auto_output="json")
 @akcc.argument("partition-ids", type=str, nargs=-1, required=True)
 def partition_get(
-    config: CliConfig, partition_ids: List[str], **kwargs
+    config: akcc.CliConfig, partition_ids: List[str], **kwargs
 ) -> Optional[List[Partition]]:
     """Get a specific partition from an ArmoniK cluster given a <PARTITION-ID>."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         partitions_client = ArmoniKPartitions(channel)
         partitions = []
         for partition_id in partition_ids:

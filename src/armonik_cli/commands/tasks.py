@@ -5,8 +5,6 @@ from armonik.client.tasks import ArmoniKTasks
 from armonik.common import Task, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
-from armonik_cli_core import console
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
 import armonik_cli_core as akcc
 
 
@@ -44,7 +42,7 @@ def tasks(**kwargs) -> None:
 )
 @akcc.option("--page-size", default=100, help="Number of elements in each page")
 def task_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[TaskFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -53,7 +51,7 @@ def task_list(
     **kwargs,
 ) -> Optional[List[Task]]:
     "List all tasks."
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         curr_page = page if page > 0 else 0
         tasks_list = []
@@ -80,9 +78,9 @@ def task_list(
 
 @tasks.command(name="get", pass_config=True, auto_output="json")
 @akcc.argument("task-ids", type=str, nargs=-1, required=True)
-def task_get(config: CliConfig, task_ids: List[str], **kwargs):
+def task_get(config: akcc.CliConfig, task_ids: List[str], **kwargs):
     """Get a detailed overview of set of tasks given their ids."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks = []
         for task_id in task_ids:
@@ -93,9 +91,9 @@ def task_get(config: CliConfig, task_ids: List[str], **kwargs):
 
 @tasks.command(name="cancel", pass_config=True, auto_output="json")
 @akcc.argument("task-ids", type=str, nargs=-1, required=True)
-def task_cancel(config: CliConfig, task_ids: List[str], **kwargs):
+def task_cancel(config: akcc.CliConfig, task_ids: List[str], **kwargs):
     "Cancel tasks given their ids. (They don't have to be in the same session necessarily)."
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks_client.cancel_tasks(task_ids)
 
@@ -187,7 +185,7 @@ def task_cancel(config: CliConfig, task_ids: List[str], **kwargs):
     metavar="KEY=VALUE",
 )
 def task_create(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     payload_id: str,
     expected_outputs: List[str],
@@ -205,7 +203,7 @@ def task_create(
     **kwargs,
 ) -> Optional[Task]:
     """Create a task."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         task_options = None
         if max_duration is not None and priority is not None and max_retries is not None:
@@ -222,7 +220,7 @@ def task_create(
                 options,
             )
         elif any(arg is not None for arg in [max_duration, priority, max_retries]):
-            console.print(
+            akcc.console.print(
                 akcc.style(
                     "If you want to pass in additional task options please provide all three (max duration, priority, max retries)",
                     "red",

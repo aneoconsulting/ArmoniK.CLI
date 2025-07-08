@@ -1,6 +1,4 @@
 from .console import console as console
-from .decorators import base_command as base_command
-from .decorators import base_group as base_group
 from .params import KeyValuePairParam as KeyValuePairParam
 from .params import TimeDeltaParam as TimeDeltaParam
 from .params import FilterParam as FilterParam
@@ -82,8 +80,7 @@ from rich_click.rich_help_configuration import RichHelpConfiguration as RichHelp
 from rich_click import rich_click as rich_click
 
 
-from .groups import ak_group
-from .commands import ak_command
+from .decorators import ak_group, ak_command
 
 group = ak_group
 command = ak_command

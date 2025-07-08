@@ -10,9 +10,6 @@ from armonik.client.results import ArmoniKResults
 from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
-from armonik_cli_core import console
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-
 
 @akcc.group(name="result")
 def results(**kwargs) -> None:
@@ -48,7 +45,7 @@ def results(**kwargs) -> None:
 )
 @akcc.option("--page-size", default=100, help="Number of elements in each page")
 def result_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[PartitionFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -57,7 +54,7 @@ def result_list(
     **kwargs,
 ) -> None:
     """List the results of an ArmoniK cluster given <SESSION-ID>."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         curr_page = page if page > 0 else 0
         results_list = []
@@ -83,9 +80,9 @@ def result_list(
 
 @results.command(name="get", pass_config=True, auto_output="table")
 @akcc.argument("result-ids", type=str, nargs=-1, required=True)
-def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[List[Result]]:
+def result_get(config: akcc.CliConfig, result_ids: List[str], **kwargs) -> Optional[List[Result]]:
     """Get details about multiple results given their RESULT_IDs."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         results = []
         for result_id in result_ids:
@@ -111,7 +108,7 @@ def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[L
     ),
 )
 def result_create(
-    config: CliConfig,
+    config: akcc.CliConfig,
     result_definitions: List[akcc.ResultNameDataParam.ParamType],
     session_id: str,
     **kwargs,
@@ -128,7 +125,7 @@ def result_create(
         elif res.type == "nodata":
             metadata_only.append(res.name)
 
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         # Create metadata-only results
         created_results = []
@@ -186,7 +183,7 @@ def result_create(
     help="Skips results that haven't been found when trying to download them.",
 )
 def results_download_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     result_ids: List[str],
     download_path: pathlib.Path,
@@ -196,7 +193,7 @@ def results_download_data(
     **kwargs,
 ):
     """Download a list of results from your cluster."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         downloaded_results = []
         for result_id in result_ids:
@@ -218,7 +215,7 @@ def results_download_data(
                     result_file_handle.write(data)
                     downloaded_result_obj["Path"] = str(result_download_path)
             downloaded_results.append(downloaded_result_obj)
-        console.formatted_print(
+        akcc.console.formatted_print(
             downloaded_result_obj,
             print_format=config.output,
             table_cols=downloaded_result_table,
@@ -243,7 +240,7 @@ def results_download_data(
     require_one=True,
 )
 def result_upload_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     result_id: Union[str, None],
     from_bytes: Union[str, None],
@@ -251,7 +248,7 @@ def result_upload_data(
     **kwargs,
 ) -> None:
     """Upload data for a result separately"""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         if from_bytes:
             result_data = bytes(from_bytes, encoding="utf-8")
@@ -274,7 +271,7 @@ def result_upload_data(
     help="Skips results that haven't been found when trying to delete them.",
 )
 def result_delete_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     result_ids: List[str],
     confirm: bool,
@@ -282,7 +279,7 @@ def result_delete_data(
     **kwargs,
 ) -> None:
     """Delete the data of multiple results given their RESULT_IDs."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         session_result_mapping = defaultdict(list)
         for result_id in result_ids:

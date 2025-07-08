@@ -1,11 +1,10 @@
-from typing import Any, Callable, Optional, Type, TypeVar, Union, cast
 import rich_click as click
 
 from rich.traceback import Traceback
 
 from .console import console
-from .commands import AkCommand, ak_command
-from .decorators import base_group
+from .commands import AkCommand
+from .decorators import ak_command
 
 from importlib.metadata import entry_points
 
@@ -254,56 +253,6 @@ class AkGroup(click.RichGroup):
             default_table=default_table,
             **kwargs,
         )
-
-
-_AnyCallable = Callable[..., Any]
-GrpType = TypeVar("GrpType", bound=click.Group)
-
-
-def ak_group(
-    name: Union[str, _AnyCallable, None] = None,
-    cls: Optional[Type[GrpType]] = None,
-    use_global_options: bool = True,
-    use_custom_parsing: bool = True,
-    **attrs: Any,
-) -> Union[click.Group, Callable[[_AnyCallable], Union[AkGroup, GrpType]]]:
-    """
-    Custom group decorator function.
-
-    Args:
-        name: Name of the group
-        cls: Custom group class to use
-        use_global_options: Whether to apply base_group decorator
-        use_custom_parsing: Whether to use AkGroup as default cls
-        **attrs: All other parameters passed to click.group
-    """
-    # Set default cls if not provided and use_custom_parsing is True
-    if cls is None and use_custom_parsing:
-        cls = cast(Type[GrpType], AkGroup)
-
-    # Handle the case where the decorator is used without parentheses
-    # e.g., @ak_group instead of @ak_group()
-    if callable(name):
-        func = name
-
-        # Apply base_group first if needed, then click.group
-        if use_global_options:
-            func = base_group(func)
-
-        group_instance = click.group(cls=cls, **attrs)(func)
-        return group_instance
-
-    # Handle the normal case where decorator is used with parentheses
-    # e.g., @ak_group(name="sessions") or @ak_group()
-    def decorator(func):
-        # Apply base_group first if needed, then click.group
-        if use_global_options:
-            func = base_group(func)
-
-        group_instance = click.group(name, cls=cls, **attrs)(func)
-        return group_instance
-
-    return decorator
 
 
 def setup_command_groups():

@@ -9,8 +9,6 @@ from armonik.client.sessions import ArmoniKSessions
 from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-
 
 @akcc.group(name="session")
 def sessions(**kwargs) -> None:
@@ -46,7 +44,7 @@ def sessions(**kwargs) -> None:
 )
 @akcc.option("--page-size", default=100, help="Number of elements in each page")
 def session_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[SessionFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -55,7 +53,7 @@ def session_list(
     **kwargs,
 ) -> Optional[List[Session]]:
     """List the sessions of an ArmoniK cluster."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         curr_page = page if page > 0 else 0
         session_list = []
@@ -81,9 +79,11 @@ def session_list(
 
 @sessions.command(name="get", pass_config=True, auto_output="table")
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
-def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
+def session_get(
+    config: akcc.CliConfig, session_ids: List[str], **kwargs
+) -> Optional[List[Session]]:
     """Get details of a given session."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         sessions = []
         for session_id in session_ids:
@@ -159,7 +159,7 @@ def session_get(config: CliConfig, session_ids: List[str], **kwargs) -> Optional
     metavar="KEY=VALUE",
 )
 def session_create(
-    config: CliConfig,
+    config: akcc.CliConfig,
     max_retries: int,
     max_duration: timedelta,
     priority: int,
@@ -174,7 +174,7 @@ def session_create(
     **kwargs,
 ) -> Optional[Session]:
     """Create a new session."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         session_id = sessions_client.create_session(
             default_task_options=TaskOptions(
@@ -208,7 +208,7 @@ def session_create(
 )
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_cancel(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_ids: List[str],
     logger: logging.Logger,
     confirm: bool,
@@ -216,7 +216,7 @@ def session_cancel(
     **kwargs,
 ) -> Optional[List[Session]]:
     """Cancel sessions."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         cancelled_sessions = []
         for session_id in session_ids:
@@ -238,9 +238,11 @@ def session_cancel(
 
 @sessions.command(name="pause", pass_config=True, auto_output="json")
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
-def session_pause(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
+def session_pause(
+    config: akcc.CliConfig, session_ids: List[str], **kwargs
+) -> Optional[List[Session]]:
     """Pause sessions."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         paused_sessions = []
         for session_id in session_ids:
@@ -251,9 +253,11 @@ def session_pause(config: CliConfig, session_ids: List[str], **kwargs) -> Option
 
 @sessions.command(name="resume", pass_config=True, auto_output="json")
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
-def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> Optional[List[Session]]:
+def session_resume(
+    config: akcc.CliConfig, session_ids: List[str], **kwargs
+) -> Optional[List[Session]]:
     """Resume sessions."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         resumed_sessions = []
         for session_id in session_ids:
@@ -275,7 +279,7 @@ def session_resume(config: CliConfig, session_ids: List[str], **kwargs) -> Optio
 )
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_close(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     session_ids: List[str],
     confirm: bool,
@@ -283,7 +287,7 @@ def session_close(
     **kwargs,
 ) -> Optional[List[Session]]:
     """Close sessions."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         closed_sessions = []
         for session_id in session_ids:
@@ -316,7 +320,7 @@ def session_close(
 )
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_purge(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     session_ids: List[str],
     confirm: bool,
@@ -324,7 +328,7 @@ def session_purge(
     **kwargs,
 ) -> Optional[List[Session]]:
     """Purge sessions."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         purged_sessions = []
         for session_id in session_ids:
@@ -358,7 +362,7 @@ def session_purge(
 )
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_delete(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     session_ids: List[str],
     confirm: bool,
@@ -366,7 +370,7 @@ def session_delete(
     **kwargs,
 ) -> Optional[List[Session]]:
     """Delete sessions and their associated tasks from the cluster."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         deleted_sessions = []
         for session_id in session_ids:
@@ -411,7 +415,7 @@ def session_delete(
 )
 @akcc.argument("session-ids", required=True, type=str, nargs=-1)
 def session_stop_submission(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     session_ids: str,
     confirm: bool,
@@ -421,7 +425,7 @@ def session_stop_submission(
     **kwargs,
 ) -> Optional[List[Session]]:
     """Stop clients and/or workers from submitting new tasks in a session."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         sessions_client = ArmoniKSessions(channel)
         submission_blocked_sessions = []
         for session_id in session_ids:

@@ -2,8 +2,6 @@ import armonik_cli_core as akcc
 from rich.table import Table
 
 from importlib.metadata import entry_points
-from armonik_cli_core.groups import ENTRY_POINT_GROUP
-from armonik_cli_core.console import console
 
 
 @akcc.group(name="extension")
@@ -16,13 +14,13 @@ def extensions():
 def list_extensions():
     """List all discoverable extensions."""
     try:
-        eps = entry_points(group=ENTRY_POINT_GROUP)
+        eps = entry_points(group=akcc.groups.ENTRY_POINT_GROUP)
     except Exception as e:
-        console.print(f"[red]Error discovering entry points: {e}[/red]")
+        akcc.console.print(f"[red]Error discovering entry points: {e}[/red]")
         raise akcc.Exit(1)
 
     if not eps:
-        console.print("[yellow]No extensions found.[/yellow]")
+        akcc.console.print("[yellow]No extensions found.[/yellow]")
         return
 
     table = Table(title="Installed ArmoniK CLI Extensions")
@@ -47,4 +45,4 @@ def list_extensions():
 
         table.add_row(ep.name, package_name, version, status)
 
-    console.print(table)
+    akcc.console.print(table)
