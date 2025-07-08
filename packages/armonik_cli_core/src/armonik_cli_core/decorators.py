@@ -4,8 +4,11 @@ import grpc
 import rich_click as click
 
 from functools import wraps, partial
-from typing import Callable, List, Optional, Any, Tuple
+from typing import Callable, List, Optional, Any, Tuple, Type, TypeVar, Union, cast, TYPE_CHECKING
 from typing_extensions import TypeAlias
+
+if TYPE_CHECKING:
+    from armonik_cli_core.groups import AkGroup
 
 from .configuration import CliConfig
 from .console import console
@@ -242,3 +245,89 @@ def base_command(
             )
 
     return wrapper
+
+
+_AnyCallable = Callable[..., Any]
+GrpType = TypeVar("GrpType", bound=click.Group)
+CmdType = TypeVar("CmdType", bound=click.Command)
+
+
+def ak_command(
+    name: Union[str, _AnyCallable, None] = None,
+    group: Optional[click.Group] = None,
+    cls: Optional[Type[CmdType]] = None,
+    use_global_options: bool = True,
+    pass_config: bool = False,
+    auto_output: Optional[str] = None,
+    default_table: Optional[List[Tuple[str, str]]] = None,
+    **attrs: Any,
+) -> Union[click.Command, Callable[[_AnyCallable], Union[click.Command, CmdType]]]:
+    """
+    Custom command decorator function.
+
+    Args:
+        name: Name of the command
+        group: Group to add the command to
+        cls: Custom command class to use
+        use_global_options: Whether to use global options or not
+        pass_config: If True, passes the config to the decorated function
+        auto_output: If provided, overrides 'auto' output format with this value
+        default_table: Default table columns for output formatting
+        **attrs: All other parameters passed to rich_click.command
+    """
+
+    # Handle the normal case where decorator is used with parentheses
+    # e.g., @ak_command(name="process") or @ak_command()
+    def decorator(func):
+        # Apply base_command first if needed, then rich_click.command
+        if use_global_options:
+            func = base_command(
+                func,
+                pass_config=pass_config,
+                auto_output=auto_output,
+                default_table=default_table,
+            )
+
+        if group:
+            command_instance = group.command(name, cls=cls, **attrs)(func)
+        else:
+            command_instance = click.command(name, cls=cls, **attrs)(func)
+        return command_instance
+
+    return decorator
+
+
+def ak_group(
+    name: Union[str, _AnyCallable, None] = None,
+    cls: Optional[Type[GrpType]] = None,
+    use_global_options: bool = True,
+    use_custom_parsing: bool = True,
+    **attrs: Any,
+) -> Union[click.Group, Callable[[_AnyCallable], Union["AkGroup", GrpType]]]:
+    """
+    Custom group decorator function.
+
+    Args:
+        name: Name of the group
+        cls: Custom group class to use
+        use_global_options: Whether to apply base_group decorator
+        use_custom_parsing: Whether to use AkGroup as default cls
+        **attrs: All other parameters passed to click.group
+    """
+    # Set default cls if not provided and use_custom_parsing is True
+    if cls is None and use_custom_parsing:
+        from armonik_cli_core.groups import AkGroup
+
+        cls = cast(Type[GrpType], AkGroup)
+
+    # Handle the normal case where decorator is used with parentheses
+    # e.g., @ak_group(name="sessions") or @ak_group()
+    def decorator(func):
+        # Apply base_group first if needed, then click.group
+        if use_global_options:
+            func = base_group(func)
+
+        group_instance = click.group(name, cls=cls, **attrs)(func)
+        return group_instance
+
+    return decorator
