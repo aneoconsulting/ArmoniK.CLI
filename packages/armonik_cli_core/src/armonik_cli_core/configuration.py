@@ -358,7 +358,6 @@ def create_grpc_channel(config: CliConfig) -> grpc.Channel:
         # Create grpc channel with tls
         channel = create_channel(
             cleaner_endpoint,
-            options=(("grpc.ssl_target_name_override", "armonik.local"),),
             certificate_authority=config.certificate_authority,
             client_certificate=config.client_certificate,
             client_key=config.client_key,
