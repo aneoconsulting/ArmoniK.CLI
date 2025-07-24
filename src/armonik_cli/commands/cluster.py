@@ -1,4 +1,4 @@
-import rich_click as click
+import armonik_cli_core as akcc
 
 from armonik.client.versions import ArmoniKVersions
 from armonik.client.health_checks import ArmoniKHealthChecks
@@ -7,22 +7,17 @@ from rich.table import Table
 from rich.text import Text
 from rich import print
 
-from armonik_cli_core import console, base_command, base_group
-from armonik_cli_core import CliConfig, create_grpc_channel
 
-
-@click.group(name="cluster")
-@base_group
+@akcc.group(name="cluster")
 def cluster(**kwargs) -> None:
     """Manage ArmoniK cluster."""
     pass
 
 
-@cluster.command(name="info")
-@base_command(pass_config=True, auto_output="table")
-def cluster_info(config: CliConfig, **kwargs) -> None:
+@cluster.command(name="info", pass_config=True, auto_output="table")
+def cluster_info(config: akcc.CliConfig, **kwargs) -> None:
     """Get basic information on the ArmoniK cluster (endpoint, versions)"""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         versions_client = ArmoniKVersions(channel)
         version_info = versions_client.list_versions()
 
@@ -42,14 +37,13 @@ def cluster_info(config: CliConfig, **kwargs) -> None:
                 "Endpoint": config.endpoint,
                 "Versions": {"Core": version_info["core"], "API": version_info["api"]},
             }
-            console.formatted_print(cluster_info, print_format=config.output)
+            akcc.console.formatted_print(cluster_info, print_format=config.output)
 
 
-@cluster.command(name="health")
-@base_command(pass_config=True, auto_output="table")
-def cluster_health(config: CliConfig, **kwargs) -> None:
+@cluster.command(name="health", pass_config=True, auto_output="table")
+def cluster_health(config: akcc.CliConfig, **kwargs) -> None:
     """Get information on the health of some components of the ArmoniK cluster"""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         health_client = ArmoniKHealthChecks(channel)
         health_status = health_client.check_health()
 
@@ -71,4 +65,4 @@ def cluster_health(config: CliConfig, **kwargs) -> None:
             panel = Panel(grid, title="Health Status", border_style="blue")
             print(panel)
         else:
-            console.formatted_print(health_status, print_format=config.output)
+            akcc.console.formatted_print(health_status, print_format=config.output)
