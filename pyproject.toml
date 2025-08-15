@@ -60,6 +60,7 @@ tests = [
   'pytest-cov',
   'pytest-mock',
   'pytest-benchmark[histogram]',
+  'pytest-dependency',
 ]
 dev = [
     'mypy',
