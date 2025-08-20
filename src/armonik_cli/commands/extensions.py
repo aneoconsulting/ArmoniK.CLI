@@ -5,7 +5,7 @@ from importlib.metadata import entry_points
 
 
 @akcc.group(name="extension")
-def extensions():
+def extensions(**kwargs):
     """Discover and manage installed CLI extensions."""
     pass
 

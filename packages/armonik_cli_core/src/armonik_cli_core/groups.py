@@ -3,8 +3,8 @@ import rich_click as click
 from rich.traceback import Traceback
 
 from .console import console
-from .commands import AkCommand
-from .decorators import ak_command
+from .commands import EnrichedCommand
+from .decorators import armonik_cli_core_command
 
 from importlib.metadata import entry_points
 
@@ -230,21 +230,22 @@ class ExtendableGroup(click.RichGroup):
             populate_option_groups_incremental(command, parent_path)
 
 
-class AkGroup(click.RichGroup):
-    """A custom group that forces all its commands to use AkCommand."""
+class EnrichedGroup(click.RichGroup):
+    """A custom group that forces all its commands to use EnrichedCommand
+    By setting the default class of commands in this group to our enriched command type."""
 
     def command(self, name=None, **kwargs):
-        """Override command method to use ak_command instead of rich_click.command"""
+        """Override command method to use armonik_cli_core_command instead of rich_click.command"""
         # Extract base_command specific arguments with defaults
         use_global_options = kwargs.pop("use_global_options", True)
         pass_config = kwargs.pop("pass_config", False)
         auto_output = kwargs.pop("auto_output", None)
         default_table = kwargs.pop("default_table", None)
 
-        kwargs.setdefault("cls", AkCommand)
+        kwargs.setdefault("cls", EnrichedCommand)
 
-        # Use ak_command decorator with the same signature
-        return ak_command(
+        # Use armonik_cli_core_command decorator with the same signature
+        return armonik_cli_core_command(
             group=super(),
             name=name,
             use_global_options=use_global_options,

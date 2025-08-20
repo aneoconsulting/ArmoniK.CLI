@@ -3,7 +3,7 @@ import pytest
 from grpc import RpcError, StatusCode
 
 from armonik_cli_core.decorators import error_handler
-from armonik_cli.exceptions import InternalArmoniKError, InternalCliError
+from armonik_cli_core.exceptions import InternalArmoniKError, InternalCliError
 
 
 class DummyRpcError(RpcError):

@@ -7,7 +7,9 @@ from .params import FieldParam as FieldParam
 from .options import MutuallyExclusiveOption as MutuallyExclusiveOption
 from .configuration import CliConfig as CliConfig
 from .configuration import create_grpc_channel as create_grpc_channel
-
+from .exceptions import ArmoniKCLIError as ArmoniKCLIError
+from .exceptions import InternalArmoniKError as InternalArmoniKError
+from .exceptions import InternalCliError as InternalCliError
 # rich_click/click
 
 from click.core import Argument as Argument
@@ -80,7 +82,7 @@ from rich_click.rich_help_configuration import RichHelpConfiguration as RichHelp
 from rich_click import rich_click as rich_click
 
 
-from .decorators import ak_group, ak_command
+from .decorators import armonik_cli_core_group, armonik_cli_core_command
 
-group = ak_group
-command = ak_command
+group = armonik_cli_core_group
+command = armonik_cli_core_command

@@ -1,8 +1,54 @@
+from typing import List
+from click import Context
 import rich_click as click
 
 
-class AkCommand(click.Command):
-    def parse_args(self, ctx, args):
+class EnrichedCommand(click.Command):
+    """Enhanced Click command with improved error handling for missing required parameters.
+
+    This class extends rich_click.Command to provide better error messages when multiple
+    required parameters are missing. Instead of stopping at the first missing parameter,
+    it collects all missing required parameters and displays them together in a single
+    error message.
+
+    The class temporarily disables the 'required' flag on all parameters during parsing
+    to prevent early termination, then performs custom validation to identify all missing
+    required parameters at once.
+
+    Example:
+        Instead of showing:
+            "Error: Missing option '--param1'"
+
+        When multiple parameters are missing, it shows:
+            "Error: Missing required options: --param1, --param2, --param3"
+
+    Attributes:
+        Inherits all attributes from rich_click.Command.
+
+    Methods:
+        parse_args(ctx, args): Override of parent method with enhanced error handling.
+    """
+
+    def parse_args(self, ctx: Context, args: List[str]):
+        """Parse command-line arguments with enhanced missing parameter error handling.
+
+        This method temporarily disables the 'required' flag on all parameters to allow
+        complete parsing, then performs custom validation to identify all missing required
+        parameters and display them in a single, comprehensive error message.
+
+        Args:
+            ctx (click.Context): The Click context object containing command state.
+            args (list): List of command-line arguments to parse.
+
+        Raises:
+            click.UsageError: When one or more required parameters are missing, with
+                             a message listing all missing parameters.
+
+        Note:
+            The original 'required' state of all parameters is preserved and restored
+            after parsing, ensuring the command object remains in its original state
+            regardless of whether parsing succeeds or fails.
+        """
         # Store the original required state of the parameters
         original_required = {param: param.required for param in self.params}
 
@@ -19,7 +65,11 @@ class AkCommand(click.Command):
             missing_params = []
             for param in self.get_params(ctx):
                 # Check if the parameter was originally required and is now missing
-                if original_required.get(param) and ctx.params.get(param.name) is None:
+                if (
+                    original_required.get(param)
+                    and param.name
+                    and ctx.params.get(param.name) is None
+                ):
                     missing_params.append(param)
 
             if missing_params:

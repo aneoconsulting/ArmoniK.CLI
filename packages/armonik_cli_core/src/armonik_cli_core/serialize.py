@@ -4,7 +4,7 @@ from enum import IntEnum
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
-from armonik_cli.exceptions import ArmoniKCLIError
+from armonik_cli_core.exceptions import ArmoniKCLIError
 
 
 def to_pascal_case(value: str) -> str:
