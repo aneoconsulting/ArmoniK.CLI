@@ -1,5 +1,3 @@
-import rich_click as click
-
 from datetime import timedelta
 from typing import List, Optional, Tuple, Union
 
@@ -7,45 +5,44 @@ from armonik.client.tasks import ArmoniKTasks
 from armonik.common import Task, TaskDefinition, TaskOptions, Direction
 from armonik.common.filter import TaskFilter, Filter
 
-from armonik_cli_core import console, base_command, base_group
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-from armonik_cli_core.params import KeyValuePairParam, TimeDeltaParam, FilterParam, FieldParam
+import armonik_cli_core as akcc
 
 
-@click.group(name="task")
-@base_group
+@akcc.group(name="task")
 def tasks(**kwargs) -> None:
     """Manage cluster's tasks."""
     pass
 
 
-@tasks.command(name="list")
-@click.option(
+@tasks.command(name="list", pass_config=True, auto_output="json")
+@akcc.option(
     "-f",
     "--filter",
     "filter_with",
-    type=FilterParam("Task"),
+    type=akcc.FilterParam("Task"),
     required=False,
     help="An expression to filter the listed tasks with.",
     metavar="FILTER EXPR",
 )
-@click.option(
-    "--sort-by", type=FieldParam("Task"), required=False, help="Attribute of task to sort with."
+@akcc.option(
+    "--sort-by",
+    type=akcc.FieldParam("Task"),
+    required=False,
+    help="Attribute of task to sort with.",
 )
-@click.option(
+@akcc.option(
     "--sort-direction",
-    type=click.Choice(["asc", "desc"], case_sensitive=False),
+    type=akcc.Choice(["asc", "desc"], case_sensitive=False),
     default="asc",
     required=False,
     help="Whether to sort by ascending or by descending order.",
 )
-@click.option(
+@akcc.option(
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
-@click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command(pass_config=True, auto_output="table")
+@akcc.option("--page-size", default=100, help="Number of elements in each page")
 def task_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[TaskFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -54,7 +51,7 @@ def task_list(
     **kwargs,
 ) -> Optional[List[Task]]:
     "List all tasks."
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         curr_page = page if page > 0 else 0
         tasks_list = []
@@ -79,12 +76,11 @@ def task_list(
     return None
 
 
-@tasks.command(name="get")
-@click.argument("task-ids", type=str, nargs=-1, required=True)
-@base_command(pass_config=True, auto_output="table")
-def task_get(config: CliConfig, task_ids: List[str], **kwargs):
+@tasks.command(name="get", pass_config=True, auto_output="json")
+@akcc.argument("task-ids", type=str, nargs=-1, required=True)
+def task_get(config: akcc.CliConfig, task_ids: List[str], **kwargs):
     """Get a detailed overview of set of tasks given their ids."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks = []
         for task_id in task_ids:
@@ -93,105 +89,103 @@ def task_get(config: CliConfig, task_ids: List[str], **kwargs):
         return tasks
 
 
-@tasks.command(name="cancel")
-@click.argument("task-ids", type=str, nargs=-1, required=True)
-@base_command(pass_config=True, auto_output="json")
-def task_cancel(config: CliConfig, task_ids: List[str], **kwargs):
+@tasks.command(name="cancel", pass_config=True, auto_output="json")
+@akcc.argument("task-ids", type=str, nargs=-1, required=True)
+def task_cancel(config: akcc.CliConfig, task_ids: List[str], **kwargs):
     "Cancel tasks given their ids. (They don't have to be in the same session necessarily)."
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         tasks_client.cancel_tasks(task_ids)
 
 
-@tasks.command(name="create")
-@click.option(
+@tasks.command(name="create", pass_config=True, auto_output="json")
+@akcc.option(
     "--session-id",
     type=str,
     required=True,
     help="Id of the session to create the task in.",
     metavar="SESSION_ID",
 )
-@click.option(
+@akcc.option(
     "--payload-id",
     type=str,
     required=True,
     help="Id of the payload to associated to the task.",
     metavar="PAYLOAD_ID",
 )
-@click.option(
+@akcc.option(
     "--expected-outputs",
     multiple=True,
     required=True,
     help="List of the ids of the task's outputs.",
     metavar="EXPECTED_OUTPUTS",
 )
-@click.option(
+@akcc.option(
     "--data-dependencies",
     multiple=True,
     help="List of the ids of the task's data dependencies.",
     metavar="DATA_DEPENDENCIES",
 )
-@click.option(
+@akcc.option(
     "--max-retries",
     type=int,
     default=None,
     help="Maximum default number of execution attempts for this task.",
     metavar="NUM_RETRIES",
 )
-@click.option(
+@akcc.option(
     "--max-duration",
-    type=TimeDeltaParam(),
+    type=akcc.TimeDeltaParam(),
     default=None,
     help="Maximum default task execution time (format HH:MM:SS.MS).",
     metavar="DURATION",
 )
-@click.option("--priority", default=None, type=int, help="Task priority.", metavar="PRIORITY")
-@click.option(
+@akcc.option("--priority", default=None, type=int, help="Task priority.", metavar="PRIORITY")
+@akcc.option(
     "--partition-id",
     type=str,
     help="Partition to run the task in.",
     metavar="PARTITION",
 )
-@click.option(
+@akcc.option(
     "--application-name",
     type=str,
     required=False,
     help="Application name for this task.",
     metavar="NAME",
 )
-@click.option(
+@akcc.option(
     "--application-version",
     type=str,
     required=False,
     help="Application version for this task.",
     metavar="VERSION",
 )
-@click.option(
+@akcc.option(
     "--application-namespace",
     type=str,
     required=False,
     help="Application namespace for this task.",
     metavar="NAMESPACE",
 )
-@click.option(
+@akcc.option(
     "--application-service",
     type=str,
     required=False,
     help="Application service for this task.",
     metavar="SERVICE",
 )
-@click.option("--engine-type", type=str, required=False, help="Engine type.", metavar="ENGINE_TYPE")
-@click.option(
+@akcc.option("--engine-type", type=str, required=False, help="Engine type.", metavar="ENGINE_TYPE")
+@akcc.option(
     "--options",
-    type=KeyValuePairParam(),
+    type=akcc.KeyValuePairParam(),
     default=None,
     multiple=True,
     help="Additional task options.",
     metavar="KEY=VALUE",
 )
-@base_command(pass_config=True, auto_output="table")
 def task_create(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     payload_id: str,
     expected_outputs: List[str],
@@ -209,7 +203,7 @@ def task_create(
     **kwargs,
 ) -> Optional[Task]:
     """Create a task."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         tasks_client = ArmoniKTasks(channel)
         task_options = None
         if max_duration is not None and priority is not None and max_retries is not None:
@@ -226,13 +220,13 @@ def task_create(
                 options,
             )
         elif any(arg is not None for arg in [max_duration, priority, max_retries]):
-            console.print(
-                click.style(
+            akcc.console.print(
+                akcc.style(
                     "If you want to pass in additional task options please provide all three (max duration, priority, max retries)",
                     "red",
                 )
             )
-            raise click.MissingParameter(
+            raise akcc.MissingParameter(
                 "If you want to pass in additional task options please provide all three (max duration, priority, max retries)"
             )
         task_definition = TaskDefinition(

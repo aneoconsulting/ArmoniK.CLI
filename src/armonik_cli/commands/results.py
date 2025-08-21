@@ -1,58 +1,51 @@
-from collections import defaultdict
 import logging
 import pathlib
 import grpc
-import rich_click as click
+import armonik_cli_core as akcc
 
 from typing import IO, List, Optional, Union
+from collections import defaultdict
 
 from armonik.client.results import ArmoniKResults
 from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
-from armonik_cli_core import console, base_command, base_group
-from armonik_cli_core.configuration import CliConfig, create_grpc_channel
-from armonik_cli_core.options import MutuallyExclusiveOption
-from armonik_cli_core.params import FieldParam, FilterParam, ResultNameDataParam
 
-
-@click.group(name="result")
-@base_group
+@akcc.group(name="result")
 def results(**kwargs) -> None:
     """Manage results."""
     pass
 
 
-@results.command(name="list")
-@click.option(
+@results.command(name="list", pass_config=True, auto_output="table")
+@akcc.option(
     "-f",
     "--filter",
     "filter_with",
-    type=FilterParam("Result"),
+    type=akcc.FilterParam("Result"),
     required=False,
     help="An expression to filter the listed results with.",
     metavar="FILTER EXPR",
 )
-@click.option(
+@akcc.option(
     "--sort-by",
-    type=FieldParam("Result"),
+    type=akcc.FieldParam("Result"),
     required=False,
     help="Attribute of result to sort with.",
 )
-@click.option(
+@akcc.option(
     "--sort-direction",
-    type=click.Choice(["asc", "desc"], case_sensitive=False),
+    type=akcc.Choice(["asc", "desc"], case_sensitive=False),
     default="asc",
     required=False,
     help="Whether to sort by ascending or by descending order.",
 )
-@click.option(
+@akcc.option(
     "--page", default=-1, help="Get a specific page, it defaults to -1 which gets all pages."
 )
-@click.option("--page-size", default=100, help="Number of elements in each page")
-@base_command(pass_config=True, auto_output="table")
+@akcc.option("--page-size", default=100, help="Number of elements in each page")
 def result_list(
-    config: CliConfig,
+    config: akcc.CliConfig,
     filter_with: Union[PartitionFilter, None],
     sort_by: Filter,
     sort_direction: str,
@@ -61,7 +54,7 @@ def result_list(
     **kwargs,
 ) -> None:
     """List the results of an ArmoniK cluster given <SESSION-ID>."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         curr_page = page if page > 0 else 0
         results_list = []
@@ -85,12 +78,11 @@ def result_list(
         return results
 
 
-@results.command(name="get")
-@click.argument("result-ids", type=str, nargs=-1, required=True)
-@base_command(pass_config=True, auto_output="table")
-def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[List[Result]]:
+@results.command(name="get", pass_config=True, auto_output="table")
+@akcc.argument("result-ids", type=str, nargs=-1, required=True)
+def result_get(config: akcc.CliConfig, result_ids: List[str], **kwargs) -> Optional[List[Result]]:
     """Get details about multiple results given their RESULT_IDs."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         results = []
         for result_id in result_ids:
@@ -99,13 +91,13 @@ def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[L
         return results
 
 
-@results.command(name="create")
-@click.argument("session-id", type=str, required=True)
-@click.option(
+@results.command(name="create", pass_config=True, auto_output="table")
+@akcc.argument("session-id", type=str, required=True)
+@akcc.option(
     "-r",
     "--result",
     "result_definitions",
-    type=ResultNameDataParam(),
+    type=akcc.ResultNameDataParam(),
     required=True,
     multiple=True,
     help=(
@@ -115,10 +107,9 @@ def result_get(config: CliConfig, result_ids: List[str], **kwargs) -> Optional[L
         "3. --result '<result_name> file <filepath>' (data is provided from a file)."
     ),
 )
-@base_command(pass_config=True, auto_output="table")
 def result_create(
-    config: CliConfig,
-    result_definitions: List[ResultNameDataParam.ParamType],
+    config: akcc.CliConfig,
+    result_definitions: List[akcc.ResultNameDataParam.ParamType],
     session_id: str,
     **kwargs,
 ) -> Optional[List[Result]]:
@@ -134,7 +125,7 @@ def result_create(
         elif res.type == "nodata":
             metadata_only.append(res.name)
 
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         # Create metadata-only results
         created_results = []
@@ -152,9 +143,9 @@ def result_create(
         return created_results
 
 
-@results.command(name="download-data")
-@click.argument("session-id", type=str, required=True)
-@click.option(
+@results.command(name="download-data", pass_config=True, auto_output="table")
+@akcc.argument("session-id", type=str, required=True)
+@akcc.option(
     "--id",
     "result_ids",
     type=str,
@@ -162,38 +153,37 @@ def result_create(
     required=True,
     help="Result IDs to download data from.",
 )
-@click.option(
+@akcc.option(
     "--path",
     "download_path",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=pathlib.Path),
-    cls=MutuallyExclusiveOption,
+    type=akcc.Path(file_okay=False, dir_okay=True, writable=True, path_type=pathlib.Path),
+    cls=akcc.MutuallyExclusiveOption,
     mutual=["std_out"],
     required=False,
     default=pathlib.Path.cwd(),
     help="Path to save the downloaded data in.",
 )
-@click.option(
+@akcc.option(
     "--suffix",
     type=str,
     required=False,
     default="",
     help="Suffix to add to the downloaded files (File extension for example).",
 )
-@click.option(
+@akcc.option(
     "--std-out",
-    cls=MutuallyExclusiveOption,
+    cls=akcc.MutuallyExclusiveOption,
     mutual=["path"],
     is_flag=True,
     help="When set, the downloaded data will be printed to the standard output.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips results that haven't been found when trying to download them.",
 )
-@base_command(pass_config=True, auto_output="table")
 def results_download_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     result_ids: List[str],
     download_path: pathlib.Path,
@@ -203,7 +193,7 @@ def results_download_data(
     **kwargs,
 ):
     """Download a list of results from your cluster."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         downloaded_results = []
         for result_id in result_ids:
@@ -225,29 +215,32 @@ def results_download_data(
                     result_file_handle.write(data)
                     downloaded_result_obj["Path"] = str(result_download_path)
             downloaded_results.append(downloaded_result_obj)
-        console.formatted_print(
+        akcc.console.formatted_print(
             downloaded_result_obj,
             print_format=config.output,
             table_cols=downloaded_result_table,
         )
 
 
-@results.command(name="upload-data")
-@click.argument("session-id", type=str, required=True)
-@click.argument("result-id", type=str, required=True)
-@click.option(
-    "--from-bytes", type=str, cls=MutuallyExclusiveOption, mutual=["from_file"], require_one=True
+@results.command(name="upload-data", pass_config=True, auto_output="json")
+@akcc.argument("session-id", type=str, required=True)
+@akcc.argument("result-id", type=str, required=True)
+@akcc.option(
+    "--from-bytes",
+    type=str,
+    cls=akcc.MutuallyExclusiveOption,
+    mutual=["from_file"],
+    require_one=True,
 )
-@click.option(
+@akcc.option(
     "--from-file",
-    type=click.File("rb"),
-    cls=MutuallyExclusiveOption,
+    type=akcc.File("rb"),
+    cls=akcc.MutuallyExclusiveOption,
     mutual=["from_bytes"],
     require_one=True,
 )
-@base_command(pass_config=True, auto_output="json")
 def result_upload_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     session_id: str,
     result_id: Union[str, None],
     from_bytes: Union[str, None],
@@ -255,7 +248,7 @@ def result_upload_data(
     **kwargs,
 ) -> None:
     """Upload data for a result separately"""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         if from_bytes:
             result_data = bytes(from_bytes, encoding="utf-8")
@@ -265,21 +258,20 @@ def result_upload_data(
         results_client.upload_result_data(result_id, session_id, result_data)
 
 
-@results.command(name="delete-data")
-@click.argument("result-ids", type=str, nargs=-1, required=True)
-@click.option(
+@results.command(name="delete-data", pass_config=True, auto_output="json")
+@akcc.argument("result-ids", type=str, nargs=-1, required=True)
+@akcc.option(
     "--confirm",
     is_flag=True,
     help="Confirm the deletion of all result data without needing to do so for each result.",
 )
-@click.option(
+@akcc.option(
     "--skip-not-found",
     is_flag=True,
     help="Skips results that haven't been found when trying to delete them.",
 )
-@base_command(pass_config=True, auto_output="json")
 def result_delete_data(
-    config: CliConfig,
+    config: akcc.CliConfig,
     logger: logging.Logger,
     result_ids: List[str],
     confirm: bool,
@@ -287,7 +279,7 @@ def result_delete_data(
     **kwargs,
 ) -> None:
     """Delete the data of multiple results given their RESULT_IDs."""
-    with create_grpc_channel(config) as channel:
+    with akcc.create_grpc_channel(config) as channel:
         results_client = ArmoniKResults(channel)
         session_result_mapping = defaultdict(list)
         for result_id in result_ids:
@@ -299,7 +291,7 @@ def result_delete_data(
                     continue
                 else:
                     raise e
-            if confirm or click.confirm(
+            if confirm or akcc.confirm(
                 f"Are you sure you want to delete the result data of task [{result.owner_task_id}] in session [{result.session_id}]",
                 abort=False,
             ):
