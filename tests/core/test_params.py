@@ -57,7 +57,7 @@ def test_timedelta_parm_fail(input):
     [
         ("Task", "output.error contains 'an error'", Task.output.error.contains("an error")),
         ("Session", "options['key'] = value", Session.options["key"] == "value"),
-        ("Result", "result_id = id", Result.result_id == "id"),
+        ("Result", "result_id = 9a4f-12zr", Result.result_id == "9a4f-12zr"),
         ("Partition", "id = id", Partition.id == "id"),
     ],
 )
