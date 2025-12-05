@@ -344,12 +344,17 @@ class FilterTransformer(Transformer):
             SemanticError: If the field is invalid or unsupported.
             ValueError: If an unexpected token sequence is provided.
         """
+        valid_fields = [
+            f
+            for f in self._filter._fields
+            if self._filter._fields[f][0] not in [FType.NA, FType.UNKNOWN]
+        ]
         if len(args) == 1:
             field = args[0].value
             if field.startswith("options."):
                 option_field = field[8:]
                 if not self._options_fields:
-                    msg = f"{self._obj.__name__.capitalize()} fillers don't have options fields."
+                    msg = f"{self._obj.__name__.capitalize()} fillers don't have options fields. Valid fields are: {', '.join(valid_fields)}."
                     raise SemanticError(
                         msg=msg,
                         expr=self._expr,
@@ -360,7 +365,12 @@ class FilterTransformer(Transformer):
                     or TaskOptionFilter._fields[option_field][0] == FType.NA
                     or TaskOptionFilter._fields[option_field][0] == FType.UNKNOWN
                 ):
-                    msg = f"{self._obj.__name__.capitalize()} fillers don't have a field '{option_field}' in the option fields."
+                    valid_option_fields = [
+                        f
+                        for f in TaskOptionFilter._fields
+                        if TaskOptionFilter._fields[f][0] not in [FType.NA, FType.UNKNOWN]
+                    ]
+                    msg = f"{self._obj.__name__.capitalize()} fillers don't have a field '{option_field}' in the option fields. Valid option fields are: {', '.join(valid_option_fields)}."
                     raise SemanticError(
                         msg=msg,
                         expr=self._expr,
@@ -370,14 +380,14 @@ class FilterTransformer(Transformer):
             elif field.startswith("output."):
                 output_field = field[7:]
                 if not self._output_fields:
-                    msg = f"{self._obj.__name__.capitalize()} fillers don't have output fields."
+                    msg = f"{self._obj.__name__.capitalize()} fillers don't have output fields. Valid fields are: {', '.join(valid_fields)}."
                     raise SemanticError(
                         msg=msg,
                         expr=self._expr,
                         column=args[0].column,
                     )
                 if output_field != "error":
-                    msg = f"{self._obj.__name__.capitalize()} fillers don't have a field '{output_field}' in the output fields."
+                    msg = f"{self._obj.__name__.capitalize()} fillers don't have a field '{output_field}' in the output fields. Valid output fields are: error."
                     raise SemanticError(
                         msg=msg,
                         expr=self._expr,
@@ -389,7 +399,12 @@ class FilterTransformer(Transformer):
                 or self._filter._fields[field][0] == FType.NA
                 or self._filter._fields[field][0] == FType.UNKNOWN
             ):
-                msg = f"{self._obj.__name__.capitalize()} filters don't have a field '{field}'."
+                if field == "options" and self._options_fields:
+                    msg = f"{self._obj.__name__.capitalize()} filters don't have a field '{field}'. To filter on option fields use 'options.<option-field-name>'. Otherwise, valid fields are: {', '.join(valid_fields)}."
+                elif field == "output":
+                    msg = f"{self._obj.__name__.capitalize()} filters don't have a field '{field}'. To filter on output fields use 'output.<output-field-name>. Otherwise, valid fields are: {', '.join(valid_fields)}."
+                else:
+                    msg = f"{self._obj.__name__.capitalize()} filters don't have a field '{field}'. Valid fields are: {', '.join(valid_fields)}."
                 raise SemanticError(
                     msg=msg,
                     expr=self._expr,
@@ -399,7 +414,7 @@ class FilterTransformer(Transformer):
         elif len(args) == 3:
             key = args[1].value
             if not self._options_fields:
-                msg = f"{self._obj.__name__.capitalize()} fillers have no options fields and therefore no custom option fields.."
+                msg = f"{self._obj.__name__.capitalize()} fillers have no options fields and therefore no custom option fields. Valid fields are: {', '.join(valid_fields)}."
                 raise SemanticError(
                     msg=msg,
                     expr=self._expr,
