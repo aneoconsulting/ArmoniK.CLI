@@ -163,7 +163,7 @@ def build_config(
     explicit_kwargs = {k: v for k, v in cli_kwargs.items() if v is not None}
     if explicit_kwargs:
         schema.layer(solidify(explicit_kwargs, CliConfigSchema, source="cli"))
-
+    schema.resolve()
     # Validate
     if requires is None:
         schema.validate(["common"]).raise_if_invalid()

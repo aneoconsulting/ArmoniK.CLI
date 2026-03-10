@@ -53,17 +53,25 @@ def config_set(field: str, value: str, **kwargs) -> None:
 def config_show(**kwargs) -> None:
     """Show the current CLI configuration."""
     c = CliConfig()
-    config_dump = c._schema.to_dict()
+    config_dump = c._schema.to_dict(redact=True)
     output = kwargs.get("output", "auto")
-
+    verbose = kwargs.get("verbose", False)
     if output == "table":
         table = Table(title="CLI Configuration")
         table.add_column("Field", justify="left")
         table.add_column("Value", justify="left")
         table.add_column("Source", justify="left")
-        for field_name, value in config_dump.items():
-            source = c._schema._sources.get(field_name, "unknown")
-            table.add_row(field_name, str(value) if value is not None else "-", source)
+        if output == "table" and verbose:
+            for info in c._schema.explain(full_history=True, redact=True):
+                # info["history"] is now available for display
+                history_str = " → ".join(
+                    f"{h['source']}" for h in info.get("history", [])
+                )
+                table.add_row(info["field"], str(info["value"]), history_str)
+        else:
+            for field_name, value in config_dump.items():
+                source = c._schema._sources.get(field_name, "unknown")
+                table.add_row(field_name, str(value) if value is not None else "-", source)
         akcc.console.print(table)
     else:
         akcc.console.formatted_print(config_dump, print_format=output)
