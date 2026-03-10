@@ -18,19 +18,19 @@ from click import get_app_dir
 from layer import layer_obj, field, require, one_of, path_exists, solidify, solidify_env
 
 # ──────────────────────────────────────────────
-# Schema (the real config — no Pydantic)
+# Schema
 # ──────────────────────────────────────────────
 
 @layer_obj
 class CliConfigSchema:
-    # Cluster connection — only validated when a command needs it
+    # Cluster connection  (only validated when a command needs it)
     endpoint: str = field(str, cluster=[require])
     certificate_authority: str = field(str, cluster=[path_exists], default=None)
     client_certificate: str = field(str, cluster=[path_exists], default=None)
     client_key: str = field(str, cluster=[path_exists], default=None)
 
-    # Common options — always validated
-    output: str = field(str, common=[one_of("json", "yaml", "table", "auto")], default="auto")
+    # Common options (always validated)
+    output: str = field(str, one_of("json", "yaml", "table", "auto"), default="auto")
     debug: bool = field(bool, default=False)
     verbose: bool = field(bool, default=False)
 
@@ -80,6 +80,8 @@ class CliConfig:
             if k in self._schema._field_defs:
                 setattr(self._schema, k, v)
                 self._schema._sources[k] = "set()"
+        # Validate only the fields we just set
+        self._schema.validate(["*"], fields=list(kwargs.keys())).raise_if_invalid()
         self._write_to_file()
 
     def layer(self, **kwargs) -> "CliConfig":
@@ -91,7 +93,7 @@ class CliConfig:
 
     def validate_config(self) -> None:
         """Validate all categories. Raises on failure."""
-        self._schema.validate("*").raise_if_invalid()
+        self._schema.validate(["*"]).raise_if_invalid()
 
     def _write_to_file(self) -> None:
         with open(self.default_path, "w") as f:

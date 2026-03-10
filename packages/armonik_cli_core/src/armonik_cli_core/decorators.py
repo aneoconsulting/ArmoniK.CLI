@@ -94,29 +94,70 @@ def apply_click_params(
     return command
 
 
+# TODO: It shouldn't be manual
 def global_config_options(command: Callable[..., Any]) -> Callable[..., Any]:
-    generated_click_options = [
+    """Register all global CLI options (--endpoint, --output, etc.) on a command."""
+    return apply_click_params(
+        command,
         click.option(
-            "-c",
-            "--config",
-            "additional_config",
+            "-c", "--config", "additional_config",
             type=click.Path(exists=True, dir_okay=False),
             required=False,
             help="Path to additional config file.",
             envvar="AKCONFIG",
             cls=GlobalOption,
-        )
-    ]
-    for _, field_info in CliConfig.ConfigModel.model_fields.items():
-        if (
-            len(field_info.metadata) > 0
-            and "cli_option" in field_info.metadata[0]
-            and field_info.metadata[0]["cli_option"]
-        ):
-            generated_click_options.append(field_info.metadata[0]["cli_option"])
-    return apply_click_params(command, *generated_click_options)
-
-
+        ),
+        click.option(
+            "-e", "--endpoint", "endpoint",
+            type=str, default=None, required=False,
+            help="ArmoniK cluster endpoint URL.",
+            envvar="AK__Endpoint",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "--ca", "--certificate-authority", "certificate_authority",
+            type=click.Path(exists=True, dir_okay=False),
+            default=None, required=False,
+            help="Path to CA certificate.",
+            envvar="AK__CertificateAuthority",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "--client-cert", "client_certificate",
+            type=click.Path(exists=True, dir_okay=False),
+            default=None, required=False,
+            help="Path to client certificate.",
+            envvar="AK__ClientCertificate",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "--client-key", "client_key",
+            type=click.Path(exists=True, dir_okay=False),
+            default=None, required=False,
+            help="Path to client key.",
+            envvar="AK__ClientKey",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "-o", "--output", "output",
+            type=click.Choice(["json", "yaml", "table", "auto"]),
+            default="auto", required=False,
+            help="Output format.",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "-d", "--debug", "debug",
+            is_flag=True, default=False,
+            help="Enable debug mode.",
+            cls=GlobalOption,
+        ),
+        click.option(
+            "-v", "--verbose", "verbose",
+            is_flag=True, default=False,
+            help="Enable verbose output.",
+            cls=GlobalOption,
+        ),
+    )
 def inject_config(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     """
     Decorator to inject a CLI configuration object into a Click command.
@@ -188,7 +229,7 @@ def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     return wrapper
 
 
-def layered_command(
+def base_command(
     func=None,
     *,
     requires=None,
@@ -203,7 +244,7 @@ def layered_command(
     """
     if func is None:
         return partial(
-            layered_command,
+            base_command,
             requires=requires,
             auto_output=auto_output,
             default_table=default_table,
@@ -211,107 +252,81 @@ def layered_command(
 
     @error_handler
     @global_config_options
+    @click.pass_context
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        # Build config only if command needs it
-        if requires is not None and len(requires) > 0:
+    def wrapper(ctx, *args, **kwargs):
+        needs_config = requires is not None and len(requires) > 0
+        print(f"DEBUG layered_command: requires={requires}, needs_config={needs_config}")
+
+        # Names of kwargs that come from global_config_options
+        config_kwarg_names = {
+            "endpoint", "certificate_authority", "client_certificate",
+            "client_key", "output", "debug", "verbose", "additional_config",
+        }
+
+        if needs_config:
             from .configuration_v2 import build_config
 
-            # Separate config-related kwargs from command kwargs
-            config_fields = set(CliConfigSchema._field_defs.keys())
-            config_kwargs = {k: v for k, v in kwargs.items() if k in config_fields}
+            # Extract config-related kwargs
+            config_kwargs = {}
+            for k in list(kwargs):
+                if k in config_kwarg_names:
+                    val = kwargs.pop(k)
+                    source = ctx.get_parameter_source(k)
+                    if source not in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP):
+                        config_kwargs[k] = val
+
+            additional_config = config_kwargs.pop("additional_config", None)
 
             config = build_config(
                 cli_kwargs=config_kwargs,
-                additional_config_path=kwargs.get("additional_config"),
+                additional_config_path=additional_config,
                 requires=requires,
             )
             kwargs["config"] = config
 
-        # Handle auto_output
-        if auto_output and kwargs.get("output") == "auto":
-            if "config" in kwargs:
-                kwargs["config"]._schema.output = auto_output
-            kwargs["output"] = auto_output
+            # Resolve output
+            if auto_output and config.output == "auto":
+                config._schema.output = auto_output
+            kwargs["output"] = config.output
 
-        # Logger
-        debug = kwargs.get("debug", False)
-        verbose = kwargs.get("verbose", False)
-        kwargs["logger"] = get_logger("armonik_cli", debug=debug, verbose=verbose)
+            # Logger from config
+            kwargs["logger"] = get_logger(
+                "armonik_cli", debug=config.debug, verbose=config.verbose
+            )
+        else:
+            # Strip all config kwargs — command doesn't want them
+            output = kwargs.pop("output", "auto")
+            debug = kwargs.pop("debug", False)
+            verbose = kwargs.pop("verbose", False)
+            for k in list(kwargs):
+                if k in config_kwarg_names:
+                    kwargs.pop(k)
+
+            if auto_output:
+                output = auto_output
+            kwargs["output"] = output
+            kwargs["logger"] = get_logger("armonik_cli", debug=debug, verbose=verbose)
 
         # Execute
+        kwargs["logger"].debug(f"Executing command: {func.__name__}")
         command_out = func(*args, **kwargs)
-        if command_out and "config" in kwargs:
+
+        # Auto-print
+        if command_out and needs_config:
             command_group, command_name, *_ = func.__name__.split("_", 2)
+            config = kwargs["config"]
             console.formatted_print(
                 command_out,
-                print_format=kwargs["config"].output,
-                table_cols=kwargs["config"].get_table_columns(command_group, command_name)
+                print_format=config.output,
+                table_cols=config.get_table_columns(command_group, command_name)
                     or default_table,
             )
+
         return command_out
 
     return wrapper
 
-# TODO: remove and use layered_command as base_command
-def base_command(
-    func: Optional[Callable[..., Any]] = None,
-    *,
-    pass_config: bool = False,
-    auto_output: Optional[str] = None,
-    default_table: Optional[List[Tuple[str, str]]] = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """
-    Decorator to add global cluster configuration, common options, and error handling
-    to a Click command function.
-
-    Args:
-        func (Optional[Callable]): The function to be decorated. If None, returns a decorator.
-        pass_config (bool): If True, passes the config to the decorated function.
-        auto_output (Optional[str]): If provided, overrides 'auto' output format with this value.
-
-    Returns:
-        Callable: A decorator that wraps the function with CLI options and error handling.
-    """
-    if func is None:
-        return partial(
-            base_command,
-            pass_config=pass_config,
-            auto_output=auto_output,
-            default_table=default_table,
-        )
-
-    @error_handler
-    @inject_config
-    @global_config_options
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if auto_output is not None and kwargs.get("output") == "auto":
-            kwargs["config"].output = auto_output
-            kwargs["output"] = auto_output
-        if not pass_config:
-            kwargs.pop("config", None)
-            kwargs.pop("additional_config", None)
-            kwargs["logger"] = get_logger("armonik_cli", debug=False, verbose=False)
-        else:
-            kwargs["logger"] = get_logger(
-                "armonik_cli", debug=kwargs["config"].debug, verbose=kwargs["config"].verbose
-            )
-        kwargs["logger"].debug(f"Executing command: {func.__name__}")
-        kwargs["logger"].debug(f"Config: {kwargs.get('config', None)}")
-        kwargs["logger"].debug(f"Arguments: {kwargs}")
-        command_out = func(*args, **kwargs)
-        if command_out:
-            command_group, command_name, *_ = func.__name__.split("_", 2)
-            console.formatted_print(
-                command_out,
-                print_format=kwargs["config"].output,
-                table_cols=table_cols
-                if (table_cols := kwargs["config"].get_table_columns(command_group, command_name))
-                else default_table,
-            )
-
-    return wrapper
 
 
 _AnyCallable = Callable[..., Any]
@@ -352,7 +367,7 @@ def armonik_cli_core_command(
     def decorator(func):
         # Apply base_command first if needed, then rich_click.command
         if use_global_options:
-            func = layered_command(
+            func = base_command(
                 func,
                 requires=requires,
                 auto_output=auto_output,
