@@ -10,8 +10,8 @@ def extensions(**kwargs):
     pass
 
 
-@extensions.command("list")
-def list_extensions():
+@extensions.command("list", requires=[])
+def list_extensions(**kwargs):
     """List all discoverable extensions."""
     try:
         eps = entry_points(group=akcc.groups.ENTRY_POINT_GROUP)

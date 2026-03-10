@@ -235,23 +235,26 @@ class EnrichedGroup(click.RichGroup):
     By setting the default class of commands in this group to our enriched command type."""
 
     def command(self, name=None, **kwargs):
-        """Override command method to use armonik_cli_core_command instead of rich_click.command"""
-        # Extract base_command specific arguments with defaults
         use_global_options = kwargs.pop("use_global_options", True)
-        pass_config = kwargs.pop("pass_config", False)
+        pass_config = kwargs.pop("pass_config", False)  # keep for backward compat during transition
         auto_output = kwargs.pop("auto_output", None)
         default_table = kwargs.pop("default_table", None)
+        requires = kwargs.pop("requires", None)
+
+        # Backward compat: if pass_config=True but no requires specified,
+        # default to ["cluster", "common"] (the old behavior)
+        if pass_config and requires is None:
+            requires = ["cluster", "common"]
 
         kwargs.setdefault("cls", EnrichedCommand)
 
-        # Use armonik_cli_core_command decorator with the same signature
         return armonik_cli_core_command(
             group=super(),
             name=name,
             use_global_options=use_global_options,
-            pass_config=pass_config,
             auto_output=auto_output,
             default_table=default_table,
+            requires=requires,
             **kwargs,
         )
 

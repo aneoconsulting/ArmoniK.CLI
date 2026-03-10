@@ -8,10 +8,15 @@ source = "uv-dynamic-versioning"
 [tool.hatch.version.raw-options]
 local_scheme = "no-local-version"
 
+[tool.uv.sources]
+layer = { path = "../../../../layer", editable = true }
+
 [project]
 name = "armonik-cli-core"
 dynamic = ["version"]
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10.12"
-dependencies = []
+dependencies = [
+    "layer",
+]

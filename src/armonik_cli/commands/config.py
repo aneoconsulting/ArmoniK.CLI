@@ -19,7 +19,7 @@ def config(**kwargs) -> None:
     pass
 
 
-@config.command(name="get", pass_config=True)
+@config.command(name="get", requires=["cluster"])
 @akcc.argument(
     "field",
     type=str,
@@ -53,7 +53,7 @@ def config_set(config: CliConfig, field: str, value: str, **kwargs) -> None:
         )
 
 
-@config.command(name="show", pass_config=True)
+@config.command(name="show", require=[])
 def config_show(config: CliConfig, output, **kwargs) -> None:
     """Show the current CLI configuration."""
     config = CliConfig()

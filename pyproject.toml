@@ -37,11 +37,14 @@ dependencies = [
     "typing_extensions",
     "pydantic",
     "pydantic-yaml",
-    "armonik_cli_core"
+    "armonik_cli_core",
+    "armonik-cli-ext-dev",
 ]
 
 [tool.uv.sources]
 armonik_cli_core = { workspace = true }
+armonik-cli = { workspace = true }
+armonik-cli-ext-dev = { path = "../armonik-cli-ext-dev", editable = true }
 
 [tool.uv.workspace]
 members = [
@@ -62,6 +65,7 @@ tests = [
   'pytest-benchmark[histogram]',
 ]
 dev = [
+    "armonik-cli",
     'mypy',
     'ruff',
     'types-PyYAML',

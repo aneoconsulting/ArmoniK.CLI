@@ -1,5 +1,6 @@
 import pathlib
 
+from armonik_cli_core.configuration_v2 import CliConfigSchema
 import grpc
 import rich_click as click
 
@@ -187,6 +188,72 @@ def base_group(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     return wrapper
 
 
+def layered_command(
+    func=None,
+    *,
+    requires=None,
+    auto_output=None,
+    default_table=None,
+):
+    """
+    New-style command decorator that uses build_config() instead of inject_config.
+
+    Commands using this decorator declare what config categories they need.
+    If requires is None or empty, no config object is injected at all.
+    """
+    if func is None:
+        return partial(
+            layered_command,
+            requires=requires,
+            auto_output=auto_output,
+            default_table=default_table,
+        )
+
+    @error_handler
+    @global_config_options
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Build config only if command needs it
+        if requires is not None and len(requires) > 0:
+            from .configuration_v2 import build_config
+
+            # Separate config-related kwargs from command kwargs
+            config_fields = set(CliConfigSchema._field_defs.keys())
+            config_kwargs = {k: v for k, v in kwargs.items() if k in config_fields}
+
+            config = build_config(
+                cli_kwargs=config_kwargs,
+                additional_config_path=kwargs.get("additional_config"),
+                requires=requires,
+            )
+            kwargs["config"] = config
+
+        # Handle auto_output
+        if auto_output and kwargs.get("output") == "auto":
+            if "config" in kwargs:
+                kwargs["config"]._schema.output = auto_output
+            kwargs["output"] = auto_output
+
+        # Logger
+        debug = kwargs.get("debug", False)
+        verbose = kwargs.get("verbose", False)
+        kwargs["logger"] = get_logger("armonik_cli", debug=debug, verbose=verbose)
+
+        # Execute
+        command_out = func(*args, **kwargs)
+        if command_out and "config" in kwargs:
+            command_group, command_name, *_ = func.__name__.split("_", 2)
+            console.formatted_print(
+                command_out,
+                print_format=kwargs["config"].output,
+                table_cols=kwargs["config"].get_table_columns(command_group, command_name)
+                    or default_table,
+            )
+        return command_out
+
+    return wrapper
+
+# TODO: remove and use layered_command as base_command
 def base_command(
     func: Optional[Callable[..., Any]] = None,
     *,
@@ -260,6 +327,7 @@ def armonik_cli_core_command(
     pass_config: bool = False,
     auto_output: Optional[str] = None,
     default_table: Optional[List[Tuple[str, str]]] = None,
+    requires=None,
     **attrs: Any,
 ) -> Union[click.Command, Callable[[_AnyCallable], Union[click.Command, CmdType]]]:
     """
@@ -275,6 +343,7 @@ def armonik_cli_core_command(
         pass_config: If True, passes the config to the decorated function
         auto_output: If provided, overrides 'auto' output format with this value
         default_table: Default table columns for output formatting
+        requires: Required validation groups to engage
         **attrs: All other parameters passed to rich_click.command
     """
 
@@ -283,9 +352,9 @@ def armonik_cli_core_command(
     def decorator(func):
         # Apply base_command first if needed, then rich_click.command
         if use_global_options:
-            func = base_command(
+            func = layered_command(
                 func,
-                pass_config=pass_config,
+                requires=requires,
                 auto_output=auto_output,
                 default_table=default_table,
             )
