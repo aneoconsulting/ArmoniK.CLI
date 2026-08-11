@@ -64,33 +64,19 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Resolve Python version
-        id: py
-        # actions/python-versions ships no patch-level build of .python-version's
-        # 3.10.12 for Windows, so python-version-file fails there. Only the
-        # major.minor ABI matters for freezing, so pin that and let the runner
-        # pick the patch -- keeps .python-version as the single source of truth.
-        run: |
-          set -euo pipefail
-          full="$(tr -d '[:space:]' < .python-version)"
-          minor="$(echo "$full" | cut -d. -f1,2)"
-          echo "Requested ${full}, using ${minor}"
-          echo "minor=${minor}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ steps.py.outputs.minor }}
-
+      # Deliberately no actions/setup-python here, unlike the other jobs: CPython
+      # 3.10 went security-only after 3.10.11, so no official Windows build of
+      # .python-version's 3.10.12 exists and actions/setup-python tops out at
+      # 3.10.11 -- below armonik-cli-core's requires-python of >=3.10.12. uv
+      # reads .python-version and fetches a matching managed interpreter on both
+      # runners, which also keeps the frozen Python identical to the tested one.
       - name: Install project and build tooling
         # --no-editable: install real packages and dist-info instead of a .pth
         #   shim, so PyInstaller sees what a PyPI user would get.
-        # --python: use the setup-python interpreter (built --enable-shared,
-        #   which PyInstaller needs) rather than a uv-downloaded standalone one.
         run: |
-          uv sync --no-editable --no-default-groups --group build \
-            --python "${{ steps.setup-python.outputs.python-path }}"
+          uv python install
+          uv sync --no-editable --no-default-groups --group build
+          uv run --no-sync python -c 'import sys; print(sys.version)'
 
       - name: Resolve version
         id: version
