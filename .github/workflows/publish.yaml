@@ -64,11 +64,24 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Resolve Python version
+        id: py
+        # actions/python-versions ships no patch-level build of .python-version's
+        # 3.10.12 for Windows, so python-version-file fails there. Only the
+        # major.minor ABI matters for freezing, so pin that and let the runner
+        # pick the patch -- keeps .python-version as the single source of truth.
+        run: |
+          set -euo pipefail
+          full="$(tr -d '[:space:]' < .python-version)"
+          minor="$(echo "$full" | cut -d. -f1,2)"
+          echo "Requested ${full}, using ${minor}"
+          echo "minor=${minor}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Python
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version-file: ".python-version"
+          python-version: ${{ steps.py.outputs.minor }}
 
       - name: Install project and build tooling
         # --no-editable: install real packages and dist-info instead of a .pth
@@ -117,9 +130,10 @@ jobs:
 
       - name: Name the artifact
         id: asset
-        # Built as plain "armonik" so click's usage line (derived from
-        # basename(sys.argv[0])) stays clean, then renamed. PyInstaller already
-        # appended .exe on Windows.
+        # Built as plain "armonik" and renamed, so the version and platform live
+        # in the asset name. PyInstaller already appended .exe on Windows. The
+        # entry script passes prog_name explicitly, so this rename does not leak
+        # into click's usage line.
         run: |
           set -euo pipefail
           asset="armonik-${{ steps.version.outputs.version-safe }}-${{ matrix.target }}${{ matrix.ext }}"
@@ -143,9 +157,15 @@ jobs:
             *) echo "::error::--version printed '$version_output', expected ${{ steps.version.outputs.version }} (is --copy-metadata missing?)"; exit 1 ;;
           esac
 
-          "$bin" --help | tee help.txt
+          # rich emits colour codes even when piped on CI runners, so strip ANSI
+          # escapes before grepping rather than relying on NO_COLOR (which drops
+          # colour but can leave bold sequences mid-word).
+          "$bin" --help | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' | tee help.txt
           grep -q "monitor and manage" help.txt # docstring-derived help survived
           grep -q "session" help.txt            # sub-commands were collected
+          # The asset filename is not the program name: click reads
+          # basename(sys.argv[0]) unless prog_name is set in the entry script.
+          grep -qE "Usage:[[:space:]]+armonik[[:space:]]" help.txt
 
           # Not asserted here: `config show` / `extension list` fail with a
           # pydantic "endpoint Field required" error even on a clean HOME, and do
@@ -158,9 +178,10 @@ jobs:
           # armonik_cli_core/filter_grammar.lark and lark's own grammars (pulled
           # in by '%import common.WS') were found inside the bundle.
           set +e
-          filter_output="$("$bin" task list -f "bogusfield = 3" 2>&1)"
+          filter_raw="$("$bin" task list -f "bogusfield = 3" 2>&1)"
           filter_status=$?
           set -e
+          filter_output="$(printf '%s' "$filter_raw" | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g')"
           echo "$filter_output"
           if [ "$filter_status" -eq 0 ]; then
             echo "::error::expected the bogus filter to be rejected"; exit 1
