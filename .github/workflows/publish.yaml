@@ -33,4 +33,162 @@ jobs:
 
       - name: Publish armonik-cli to PyPi
         if: github.event_name == 'release' # Publish on releases
-        run: uv publish -t ${{ secrets.PYPI_CLI_TOKEN }} 
+        run: uv publish -t ${{ secrets.PYPI_CLI_TOKEN }}
+
+  build-binaries:
+    name: Build standalone binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write # for `gh release upload`
+    strategy:
+      fail-fast: false # a Windows failure must not cancel the Linux upload
+      matrix:
+        include:
+          - os: ubuntu-22.04 # older glibc than ubuntu-latest, so the binary runs on more distros
+            target: linux-x86_64
+            ext: ""
+          - os: windows-latest
+            target: windows-x86_64
+            ext: ".exe"
+    defaults:
+      run:
+        shell: bash # one script dialect across both runners
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0 # uv-dynamic-versioning needs the tags
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Deliberately no actions/setup-python here, unlike the other jobs: CPython
+      # 3.10 went security-only after 3.10.11, so no official Windows build of
+      # .python-version's 3.10.12 exists and actions/setup-python tops out at
+      # 3.10.11 -- below armonik-cli-core's requires-python of >=3.10.12. uv
+      # reads .python-version and fetches a matching managed interpreter on both
+      # runners, which also keeps the frozen Python identical to the tested one.
+      - name: Install project and build tooling
+        # --no-editable: install real packages and dist-info instead of a .pth
+        #   shim, so PyInstaller sees what a PyPI user would get.
+        run: |
+          uv python install
+          uv sync --no-editable --no-default-groups --group build
+          uv run --no-sync python -c 'import sys; print(sys.version)'
+
+      - name: Resolve version
+        id: version
+        # The same string the binary itself reports, so the asset name and
+        # `armonik --version` can be asserted equal. Works on the pull_request
+        # path too, where there is no release tag.
+        run: |
+          set -euo pipefail
+          version="$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("armonik_cli"))')"
+          # On a release the tag is checked out, so this is a clean "0.4.0". Off
+          # a tag it gains a dev/local segment ("0.4.0.post2.dev0+d80aa1d"), so
+          # squash anything filename-unfriendly for the asset name.
+          version_safe="${version//[!A-Za-z0-9.-]/-}"
+          echo "Resolved version: ${version} (asset: ${version_safe})"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "version-safe=${version_safe}" >> "$GITHUB_OUTPUT"
+
+      - name: Build standalone binary
+        # --collect-data armonik_cli_core: bundles filter_grammar.lark, which
+        #   filters.py reads at runtime via Path(__file__).parent.
+        # --copy-metadata armonik_cli: else importlib.metadata.version() fails
+        #   and __version__ falls back to "0.0.0".
+        # Everything else (lark's own grammars, grpc's roots.pem, pydantic
+        #   submodules, ruamel.yaml plugins, rich) is covered by lark's bundled
+        #   hook and pyinstaller-hooks-contrib.
+        # Do not add --optimize: click help text comes from docstrings.
+        run: |
+          uv run --no-sync pyinstaller \
+            --onefile \
+            --console \
+            --noconfirm \
+            --clean \
+            --name armonik \
+            --collect-data armonik_cli_core \
+            --copy-metadata armonik_cli \
+            scripts/pyinstaller_entry.py
+
+      - name: Name the artifact
+        id: asset
+        # Built as plain "armonik" and renamed, so the version and platform live
+        # in the asset name. PyInstaller already appended .exe on Windows. The
+        # entry script passes prog_name explicitly, so this rename does not leak
+        # into click's usage line.
+        run: |
+          set -euo pipefail
+          asset="armonik-${{ steps.version.outputs.version-safe }}-${{ matrix.target }}${{ matrix.ext }}"
+          mv "dist/armonik${{ matrix.ext }}" "dist/${asset}"
+          ls -l "dist/${asset}"
+          echo "name=${asset}" >> "$GITHUB_OUTPUT"
+          echo "path=dist/${asset}" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test the binary
+        env:
+          COLUMNS: "200" # stop rich wrapping the strings we grep for
+        run: |
+          set -euo pipefail
+          bin="./${{ steps.asset.outputs.path }}"
+          chmod +x "$bin"
+
+          version_output="$("$bin" --version)"
+          echo "$version_output"
+          case "$version_output" in
+            *"${{ steps.version.outputs.version }}"*) ;;
+            *) echo "::error::--version printed '$version_output', expected ${{ steps.version.outputs.version }} (is --copy-metadata missing?)"; exit 1 ;;
+          esac
+
+          # rich emits colour codes even when piped on CI runners, so strip ANSI
+          # escapes before grepping rather than relying on NO_COLOR (which drops
+          # colour but can leave bold sequences mid-word).
+          "$bin" --help | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' | tee help.txt
+          grep -q "monitor and manage" help.txt # docstring-derived help survived
+          grep -q "session" help.txt            # sub-commands were collected
+          # The asset filename is not the program name: click reads
+          # basename(sys.argv[0]) unless prog_name is set in the entry script.
+          grep -qE "Usage:[[:space:]]+armonik[[:space:]]" help.txt
+
+          # Not asserted here: `config show` / `extension list` fail with a
+          # pydantic "endpoint Field required" error even on a clean HOME, and do
+          # so identically from a source install -- a pre-existing CLI issue, not
+          # a packaging one. Reaching either error already proves pydantic and
+          # pydantic-yaml import inside the bundle, as does startup itself.
+
+          # The filter is a click ParamType, so Lark runs at argument-parse time,
+          # before any cluster connection. Reaching field validation proves both
+          # armonik_cli_core/filter_grammar.lark and lark's own grammars (pulled
+          # in by '%import common.WS') were found inside the bundle.
+          set +e
+          filter_raw="$("$bin" task list -f "bogusfield = 3" 2>&1)"
+          filter_status=$?
+          set -e
+          filter_output="$(printf '%s' "$filter_raw" | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g')"
+          echo "$filter_output"
+          if [ "$filter_status" -eq 0 ]; then
+            echo "::error::expected the bogus filter to be rejected"; exit 1
+          fi
+          case "$filter_output" in
+            *bogusfield*) ;;
+            *) echo "::error::filter grammar failed to load inside the bundle"; exit 1 ;;
+          esac
+
+      - name: Archive binary
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+        with:
+          name: ${{ steps.asset.outputs.name }}
+          path: ${{ steps.asset.outputs.path }}
+          if-no-files-found: error
+
+      - name: Upload binary to the GitHub release
+        if: github.event_name == 'release' # mirrors the PyPI publish step
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "${{ steps.asset.outputs.path }}" --clobber

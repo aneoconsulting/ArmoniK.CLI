@@ -72,6 +72,9 @@ docs = [
     "sphinx-rtd-theme",
     "sphinx-autobuild"
 ]
+build = [
+    'pyinstaller>=6.11',
+]
 
 [tool.uv]
 default-groups = ["dev", "tests", "docs"]
