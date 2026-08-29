@@ -118,6 +118,36 @@ class CliConfig:
             ),
         )
 
+        server_name_override: Optional[bool] = CliField(
+            description="Override the server name used for TLS certificate verification with 'endpoint'."
+            "Useful when the server's certificate name does not match the actual endpoint.",
+            cli_option_group="ClusterConnection",
+            default=None,
+            cli_option=click.option(
+                "--server-name-override/--no-server-name-override",
+                is_flag=True,
+                default=False,
+                show_default=True,
+                help="Override the server name used for TLS certificate verification with 'endpoint'."
+                "Useful when the server's certificate name does not match the actual endpoint.",
+                cls=GlobalOption,
+            ),
+        )
+
+        bypass_validation: Optional[bool] = CliField(
+            description="Bypass certificate validation.",
+            cli_option_group="ClusterConnection",
+            default=None,
+            cli_option=click.option(
+                "--bypass-validation/--no-bypass-validation",
+                is_flag=True,
+                default=False,
+                show_default=True,
+                help="Bypass certificate validation (not recommended for production).",
+                cls=GlobalOption,
+            ),
+        )
+
         debug: bool = CliField(
             default=False,
             description="Whether to print the stack trace of internal errors.",
@@ -358,9 +388,14 @@ def create_grpc_channel(config: CliConfig) -> grpc.Channel:
         # Create grpc channel with tls
         channel = create_channel(
             cleaner_endpoint,
-            certificate_authority=config.certificate_authority,
+            certificate_authority=config.certificate_authority
+            if not config.bypass_validation
+            else None,
             client_certificate=config.client_certificate,
             client_key=config.client_key,
+            options=(("grpc.ssl_target_name_override", cleaner_endpoint),)
+            if config.server_name_override or config.bypass_validation
+            else None,
         )
     else:
         # Create insecure grpc channel
