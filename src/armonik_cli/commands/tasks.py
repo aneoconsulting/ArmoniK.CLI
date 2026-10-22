@@ -8,6 +8,9 @@ from armonik.common.filter import TaskFilter, Filter
 import armonik_cli_core as akcc
 
 
+task_filter = akcc.FilterParam("Task")
+
+
 @akcc.group(name="task")
 def tasks(**kwargs) -> None:
     """Manage cluster's tasks."""
@@ -19,9 +22,9 @@ def tasks(**kwargs) -> None:
     "-f",
     "--filter",
     "filter_with",
-    type=akcc.FilterParam("Task"),
+    type=task_filter,
     required=False,
-    help="An expression to filter the listed tasks with.",
+    help=f"An expression to filter the listed tasks with. {task_filter.help_text}",
     metavar="FILTER EXPR",
 )
 @akcc.option(
