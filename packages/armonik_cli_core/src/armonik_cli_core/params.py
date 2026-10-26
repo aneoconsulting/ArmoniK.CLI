@@ -13,7 +13,7 @@ from armonik.common.filter.filter import FType
 from lark.exceptions import VisitError
 
 from armonik_cli.utils import parse_time_delta
-from .filters import FilterParser, ParsingError
+from .filters import FilterParser, ParsingError, get_valid_fields
 
 
 class KeyValuePairParam(click.ParamType):
@@ -97,6 +97,13 @@ class FilterParam(click.ParamType):
 
     name = "filter"
 
+    _examples = {
+        "Task": "status = error and session_id = 'my-session-id'",
+        "Session": "status = running and created_at > 2025-01-01",
+        "Result": "status = completed and size > 1024",
+        "Partition": "priority > 1 and pod_max >= 10",
+    }
+
     def __init__(self, filter_type: str) -> None:
         super().__init__()
         try:
@@ -115,6 +122,27 @@ class FilterParam(click.ParamType):
         except AttributeError:
             msg = f"'{filter_type}' is not a valid filter type."
             raise ValueError(msg)
+        self.filter_type = filter_type
+
+    @property
+    def help_text(self) -> str:
+        """
+        Describe the fields usable in a filter expression, with an example.
+
+        Returns:
+            A help text to append to the option help.
+        """
+        fields = [f"`{f}`" for f in get_valid_fields(self.parser.filter)]
+        if self.parser.options_fields:
+            fields.append("`options.<field>`")
+            fields.append("`options[<key>]`")
+        if self.parser.output_fields:
+            fields.append("`output.error`")
+        text = f"Fields: {', '.join(fields)}."
+        example = self._examples.get(self.filter_type)
+        if example:
+            text += f' Example: `"{example}"`.'
+        return text
 
     def convert(
         self, value: str, param: Union[click.Parameter, None], ctx: Union[click.Context, None]

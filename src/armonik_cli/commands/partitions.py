@@ -7,6 +7,9 @@ from armonik.common.filter import Filter, PartitionFilter
 from armonik.common import Partition, Direction
 
 
+partition_filter = akcc.FilterParam("Partition")
+
+
 @akcc.group(name="partition")
 def partitions(**kwargs) -> None:
     """Manage cluster partitions."""
@@ -18,9 +21,9 @@ def partitions(**kwargs) -> None:
     "-f",
     "--filter",
     "filter_with",
-    type=akcc.FilterParam("Partition"),
+    type=partition_filter,
     required=False,
-    help="An expression to filter partitions with",
+    help=f"An expression to filter partitions with. {partition_filter.help_text}",
     metavar="FILTER EXPR",
 )
 @akcc.option(

@@ -31,6 +31,21 @@ from lark import Lark, Transformer, Token, UnexpectedInput
 from armonik_cli.utils import parse_time_delta, remove_string_delimiters
 
 
+def get_valid_fields(
+    filter: Union[PartitionFilter, ResultFilter, SessionFilter, TaskFilter, TaskOptionFilter],
+) -> List[str]:
+    """
+    List the fields of a filter that can be used in a filter expression.
+
+    Args:
+        filter: The ArmoniK API filter class.
+
+    Returns:
+        The names of the filterable fields.
+    """
+    return [f for f in filter._fields if filter._fields[f][0] not in [FType.NA, FType.UNKNOWN]]
+
+
 class ParsingError(Exception):
     """
     Exception raised for parsing errors in filter expressions.
@@ -344,11 +359,7 @@ class FilterTransformer(Transformer):
             SemanticError: If the field is invalid or unsupported.
             ValueError: If an unexpected token sequence is provided.
         """
-        valid_fields = [
-            f
-            for f in self._filter._fields
-            if self._filter._fields[f][0] not in [FType.NA, FType.UNKNOWN]
-        ]
+        valid_fields = get_valid_fields(self._filter)
         if len(args) == 1:
             field = args[0].value
             if field.startswith("options."):
@@ -365,11 +376,7 @@ class FilterTransformer(Transformer):
                     or TaskOptionFilter._fields[option_field][0] == FType.NA
                     or TaskOptionFilter._fields[option_field][0] == FType.UNKNOWN
                 ):
-                    valid_option_fields = [
-                        f
-                        for f in TaskOptionFilter._fields
-                        if TaskOptionFilter._fields[f][0] not in [FType.NA, FType.UNKNOWN]
-                    ]
+                    valid_option_fields = get_valid_fields(TaskOptionFilter)
                     msg = f"{self._obj.__name__.capitalize()} fillers don't have a field '{option_field}' in the option fields. Valid option fields are: {', '.join(valid_option_fields)}."
                     raise SemanticError(
                         msg=msg,

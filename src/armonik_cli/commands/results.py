@@ -11,6 +11,9 @@ from armonik.common import Result, Direction
 from armonik.common.filter import PartitionFilter, Filter
 
 
+result_filter = akcc.FilterParam("Result")
+
+
 @akcc.group(name="result")
 def results(**kwargs) -> None:
     """Manage results."""
@@ -22,9 +25,9 @@ def results(**kwargs) -> None:
     "-f",
     "--filter",
     "filter_with",
-    type=akcc.FilterParam("Result"),
+    type=result_filter,
     required=False,
-    help="An expression to filter the listed results with.",
+    help=f"An expression to filter the listed results with. {result_filter.help_text}",
     metavar="FILTER EXPR",
 )
 @akcc.option(

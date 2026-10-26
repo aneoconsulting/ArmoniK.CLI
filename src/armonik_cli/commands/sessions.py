@@ -10,6 +10,9 @@ from armonik.common import Session, TaskOptions, Direction
 from armonik.common.filter import SessionFilter, Filter
 
 
+session_filter = akcc.FilterParam("Session")
+
+
 @akcc.group(name="session")
 def sessions(**kwargs) -> None:
     """Manage cluster sessions."""
@@ -21,9 +24,9 @@ def sessions(**kwargs) -> None:
     "-f",
     "--filter",
     "filter_with",
-    type=akcc.FilterParam("Session"),
+    type=session_filter,
     required=False,
-    help="An expression to filter the sessions to be listed.",
+    help=f"An expression to filter the sessions to be listed. {session_filter.help_text}",
     metavar="FILTER EXPR",
 )
 @akcc.option(

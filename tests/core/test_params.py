@@ -143,3 +143,10 @@ def test_convert_malformed_input():
     param_type = ResultNameDataParam()
     result = param_type.convert("malformed input with too many parts", None, None)
     assert result is None
+
+
+@pytest.mark.parametrize("filter_type", ["Task", "Session", "Result", "Partition"])
+def test_filter_param_help_example_is_valid(filter_type):
+    param = FilterParam(filter_type)
+    assert "Fields: `" in param.help_text
+    param.convert(param._examples[filter_type], None, None)
