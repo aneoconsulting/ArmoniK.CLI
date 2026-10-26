@@ -1,7 +1,7 @@
 import click
 import pytest
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from pathlib import Path
 
@@ -57,7 +57,13 @@ def test_timedelta_parm_fail(input):
     [
         ("Task", "output.error contains 'an error'", Task.output.error.contains("an error")),
         ("Session", "options['key'] = value", Session.options["key"] == "value"),
-        ("Result", "result_id = 9a4f-12zr", Result.result_id == "9a4f-12zr"),
+        ("Result", "result_id = id", Result.result_id == "id"),
+        (
+            "Result",
+            "result_id = 9a5fc098-e677-4b97-9996-fc4b5303d97e",
+            Result.result_id == "9a5fc098-e677-4b97-9996-fc4b5303d97e",
+        ),
+        ("Task", "created_at > 2024-01-01", Task.created_at > datetime(2024, 1, 1)),
         ("Partition", "id = id", Partition.id == "id"),
     ],
 )
