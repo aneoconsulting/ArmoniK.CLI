@@ -63,6 +63,11 @@ def test_timedelta_parm_fail(input):
             "result_id = 9a5fc098-e677-4b97-9996-fc4b5303d97e",
             Result.result_id == "9a5fc098-e677-4b97-9996-fc4b5303d97e",
         ),
+        (
+            "Task",
+            "id = 9a5fc098-e677-4b97-9996-fc4b5303d97e###1",
+            Task.id == "9a5fc098-e677-4b97-9996-fc4b5303d97e###1",
+        ),
         ("Task", "created_at > 2024-01-01", Task.created_at > datetime(2024, 1, 1)),
         ("Partition", "id = id", Partition.id == "id"),
     ],

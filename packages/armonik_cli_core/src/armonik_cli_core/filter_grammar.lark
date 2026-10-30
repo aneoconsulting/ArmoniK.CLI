@@ -36,9 +36,9 @@ IS: "is" | "IS"
 // Terminals types
 LITERAL: /[a-zA-Z_][a-zA-Z0-9-_\.]*/
 STRING: /(".*?(?<!\\)(\\\\)*?"|'.*?(?<!\\)(\\\\)*?')/i
-// Unquoted object IDs (UUIDs), which LITERAL rejects when they start with a digit.
+// Unquoted object IDs (UUIDs, with an optional "###N" retry suffix), which LITERAL rejects.
 // The exact shape avoids ambiguity with DATETIME (e.g. 2024-01-01).
-UUID: /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+UUID: /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?:###\d+)?/
 DATETIME: /\d{4}-\d{2}-\d{2}(?:T\d{1,2}:\d{2}:\d{2}(?:\.\d+)?)?/
 DURATION: /-?(?:\d+\.)?\d{1,2}:\d{2}:\d{2}(?:\.\d+)?/
 LBRACKET: "["
