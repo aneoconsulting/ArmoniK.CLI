@@ -68,6 +68,32 @@ def test_timedelta_parm_fail(input):
             "id = 9a5fc098-e677-4b97-9996-fc4b5303d97e###1",
             Task.id == "9a5fc098-e677-4b97-9996-fc4b5303d97e###1",
         ),
+        (
+            "Session",
+            "session_id = 12345678-1234-1234-1234-123456789012",
+            Session.session_id == "12345678-1234-1234-1234-123456789012",
+        ),
+        (
+            "Task",
+            "id = 20240101-e677-4b97-9996-fc4b5303d97e",
+            Task.id == "20240101-e677-4b97-9996-fc4b5303d97e",
+        ),
+        (
+            "Task",
+            "id = ABCDEF12-E677-4B97-9996-FC4B5303D97E",
+            Task.id == "ABCDEF12-E677-4B97-9996-FC4B5303D97E",
+        ),
+        (
+            "Task",
+            "id = abcdef12-e677-4b97-9996-fc4b5303d97e###12",
+            Task.id == "abcdef12-e677-4b97-9996-fc4b5303d97e###12",
+        ),
+        (
+            "Task",
+            "session_id = 9a5fc098-e677-4b97-9996-fc4b5303d97e and id = 9a5fc098-e677-4b97-9996-fc4b5303d97e###1",
+            (Task.session_id == "9a5fc098-e677-4b97-9996-fc4b5303d97e")
+            & (Task.id == "9a5fc098-e677-4b97-9996-fc4b5303d97e###1"),
+        ),
         ("Task", "created_at > 2024-01-01", Task.created_at > datetime(2024, 1, 1)),
         ("Partition", "id = id", Partition.id == "id"),
     ],
@@ -81,6 +107,8 @@ def test_filter_parm_success(filter_type, input, output):
     [
         ("Task", "id = string with space"),
         ("Result", 'size = "1"'),
+        ("Task", "id = 9a5fc098-e677-4b97-9996-fc4b5303d97e###"),
+        ("Task", "id = abc###1"),
     ],
 )
 def test_filter_parm_fail(filter_type, input):
